@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "492544469047",
+    "project_id": "job-board-and-freelance",
+    "storage_bucket": "job-board-and-freelance.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:492544469047:android:5d83769edd07631b7777b2",
+        "android_client_info": {
+          "package_name": "com.example.job_board_freelance_marketplace"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCUqrRvb-V1Wc5iQgQWyXorGSJkSOXnxjk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
