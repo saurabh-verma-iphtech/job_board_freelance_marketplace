@@ -612,6 +612,7 @@ class _LoadingIndicatorState extends State<LoadingIndicator>
   }
 }
 
+
 class AnimatedButton extends StatefulWidget {
   final String label;
   final Color color;

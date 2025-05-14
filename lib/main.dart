@@ -12,7 +12,6 @@ import 'package:job_board_freelance_marketplace/Screens/Job/Client/client_job_de
 import 'package:job_board_freelance_marketplace/Screens/Job/Client/client_job_list.dart';
 import 'package:job_board_freelance_marketplace/Screens/Job/Client/edit_job_client.dart';
 import 'package:job_board_freelance_marketplace/Screens/Job/Client/list_proposal_screen.dart';
-import 'package:job_board_freelance_marketplace/Screens/Job/Client/spendings_detail.dart';
 import 'package:job_board_freelance_marketplace/Screens/Job/Freelancer/job_detail_screen.dart';
 import 'package:job_board_freelance_marketplace/Screens/Job/Freelancer/my_proposals.dart';
 import 'package:job_board_freelance_marketplace/Screens/Job/Freelancer/submit_proposal_F.dart';
@@ -66,7 +65,7 @@ class MyApp extends ConsumerWidget {
         '/submit-proposal': (_) => const SubmitProposalScreen(),
         // '/contracts': (_) => const ContractsListScreen(),
         '/client-jobs': (_) => const ClientJobsScreen(),
-        '/my-proposals': (_) => const MyProposalsScreen(),
+        '/my-proposals': (_) =>  MyProposalsScreen(),
         '/client-proposals': (_) => ClientProposalsScreen(),
         '/edit-job':
             (ctx) => EditJobScreen(

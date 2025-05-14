@@ -28,16 +28,16 @@
 //   double totalEarnings = 0.0;
 //   int totalProposals = 0;
 
-//   late StreamSubscription _contractsSub;
-//   late StreamSubscription _proposalsSub;
-//   late StreamSubscription _completedSub;
-
+//   late StreamSubscription<QuerySnapshot> _contractsSub;
+//   late StreamSubscription<QuerySnapshot> _proposalsSub;
+//   late StreamSubscription<QuerySnapshot> _completedSub;
+//   late StreamSubscription<QuerySnapshot> _allPropsSub;
 
 //   @override
 //   void initState() {
 //     super.initState();
-//     // _loadUserData();
-//       _setupStreamSubscriptions();
+//     _loadInitialData();
+//     _setupStreamSubscriptions();
 
 //     _controller = AnimationController(
 //       vsync: this,
@@ -57,10 +57,24 @@
 //     _controller.forward();
 //   }
 
+//   Future<void> _loadInitialData() async {
+//     final uid = FirebaseAuth.instance.currentUser!.uid;
+//     final userDoc =
+//         await FirebaseFirestore.instance.collection('users').doc(uid).get();
+//     if (!userDoc.exists || userDoc.data()?['profileCompleted'] != true) {
+//       Navigator.pushReplacementNamed(context, '/freelancer-profile');
+//       return;
+//     }
+//     setState(() {
+//       role = userDoc.data()!['role'] as String?;
+//       userName = userDoc.data()!['name'] as String? ?? 'Freelancer';
+//     });
+//   }
+
 //   void _setupStreamSubscriptions() {
 //     final uid = FirebaseAuth.instance.currentUser!.uid;
 
-//     // Active contracts stream
+//     // Active contracts
 //     _contractsSub = FirebaseFirestore.instance
 //         .collection('contracts')
 //         .where('freelancerId', isEqualTo: uid)
@@ -70,7 +84,6 @@
 //           setState(() => activeContracts = snapshot.docs.length);
 //         });
 
-//     // Pending proposals stream
 //     _proposalsSub = FirebaseFirestore.instance
 //         .collection('proposals')
 //         .where('freelancerId', isEqualTo: uid)
@@ -80,7 +93,7 @@
 //           setState(() => pendingProposals = snapshot.docs.length);
 //         });
 
-//     // Completed contracts stream
+//     // Completed jobs & earnings
 //     _completedSub = FirebaseFirestore.instance
 //         .collection('contracts')
 //         .where('freelancerId', isEqualTo: uid)
@@ -91,15 +104,13 @@
 //             final bid = doc.data()['agreedBid'];
 //             return bid is num ? sum + bid.toDouble() : sum;
 //           });
-
 //           setState(() {
 //             completedJobs = snapshot.docs.length;
 //             totalEarnings = earnings;
 //           });
 //         });
 
-//     // Total proposals stream
-//     FirebaseFirestore.instance
+//     _allPropsSub = FirebaseFirestore.instance
 //         .collection('proposals')
 //         .where('freelancerId', isEqualTo: uid)
 //         .snapshots()
@@ -108,28 +119,13 @@
 //         });
 //   }
 
-//   Future<void> _loadInitialData() async {
-//     final uid = FirebaseAuth.instance.currentUser!.uid;
-//     final userDoc =
-//         await FirebaseFirestore.instance.collection('users').doc(uid).get();
-
-//     if (!userDoc.exists || userDoc.data()?['profileCompleted'] != true) {
-//       Navigator.pushReplacementNamed(context, '/freelancer-profile');
-//       return;
-//     }
-
-//     setState(() {
-//       role = userDoc.data()!['role'] as String?;
-//       userName = userDoc.data()!['name'] as String? ?? 'Freelancer';
-//     });
-//   }
-
 //   @override
 //   void dispose() {
 //     _controller.dispose();
 //     _contractsSub.cancel();
-//       _proposalsSub.cancel();
+//     _proposalsSub.cancel();
 //     _completedSub.cancel();
+//     _allPropsSub.cancel();
 //     super.dispose();
 //   }
 
@@ -183,6 +179,8 @@
 //     );
 //   }
 
+
+// // AppBar UI.........
 //   AppBar _buildAppBar(ThemeData theme) {
 //     return AppBar(
 //       title: Text(
@@ -195,12 +193,6 @@
 //       backgroundColor: theme.scaffoldBackgroundColor,
 //       elevation: 0,
 //       actions: [
-//         _buildIconButton(
-//           icon: Icons.send,
-//           tooltip: 'My Proposals',
-//           onPressed: () => Navigator.pushNamed(context, '/my-proposals'),
-//           badgeCount: pendingProposals,
-//         ),
 //         IconButton(
 //           icon: Icon(Icons.logout, color: theme.colorScheme.error),
 //           onPressed: _confirmSignOut,
@@ -496,6 +488,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:job_board_freelance_marketplace/Screens/Auth_Screen/login_screen.dart';
+import 'package:job_board_freelance_marketplace/Screens/Chat/chat_dashboard.dart';
 import 'package:job_board_freelance_marketplace/Screens/Dashboard/Freelancer/profile_screen.dart';
 import 'package:job_board_freelance_marketplace/Screens/Job/Freelancer/pendingProposals.dart';
 import 'package:job_board_freelance_marketplace/Screens/Job/completedJob.dart';
@@ -520,6 +513,8 @@ class _FreelancerDashboardState extends State<FreelancerDashboard>
   int completedJobs = 0;
   double totalEarnings = 0.0;
   int totalProposals = 0;
+    int _unreadMessagesCount = 0;
+
 
   late StreamSubscription<QuerySnapshot> _contractsSub;
   late StreamSubscription<QuerySnapshot> _proposalsSub;
@@ -672,6 +667,7 @@ class _FreelancerDashboardState extends State<FreelancerDashboard>
     );
   }
 
+  // AppBar UI.........
   AppBar _buildAppBar(ThemeData theme) {
     return AppBar(
       title: Text(
@@ -684,11 +680,18 @@ class _FreelancerDashboardState extends State<FreelancerDashboard>
       backgroundColor: theme.scaffoldBackgroundColor,
       elevation: 0,
       actions: [
+
         _buildIconButton(
-          icon: Icons.send,
-          tooltip: 'My Proposals',
-          onPressed: () => Navigator.pushNamed(context, '/my-proposals'),
-          badgeCount: pendingProposals,
+          icon: Icons.chat,
+          tooltip: 'Messages',
+          onPressed:
+              () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => ChatDashboard(userType: 'freelancer'),
+                ),
+              ),
+          badgeCount: _unreadMessagesCount,
         ),
         IconButton(
           icon: Icon(Icons.logout, color: theme.colorScheme.error),
@@ -729,6 +732,35 @@ class _FreelancerDashboardState extends State<FreelancerDashboard>
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildIconButton({
+    required IconData icon,
+    required String tooltip,
+    required VoidCallback onPressed,
+    int badgeCount = 0,
+  }) {
+    return Stack(
+      children: [
+        IconButton(icon: Icon(icon), tooltip: tooltip, onPressed: onPressed),
+        if (badgeCount > 0)
+          Positioned(
+            right: 8,
+            top: 8,
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: const BoxDecoration(
+                color: Colors.red,
+                shape: BoxShape.circle,
+              ),
+              child: Text(
+                badgeCount.toString(),
+                style: const TextStyle(color: Colors.white, fontSize: 12),
+              ),
+            ),
+          ),
+      ],
     );
   }
 
@@ -836,34 +868,34 @@ class _FreelancerDashboardState extends State<FreelancerDashboard>
     );
   }
 
-  Widget _buildIconButton({
-    required IconData icon,
-    required String tooltip,
-    required VoidCallback onPressed,
-    int badgeCount = 0,
-  }) {
-    return Stack(
-      children: [
-        IconButton(icon: Icon(icon), tooltip: tooltip, onPressed: onPressed),
-        if (badgeCount > 0)
-          Positioned(
-            right: 8,
-            top: 8,
-            child: Container(
-              padding: const EdgeInsets.all(4),
-              decoration: const BoxDecoration(
-                color: Colors.red,
-                shape: BoxShape.circle,
-              ),
-              child: Text(
-                badgeCount.toString(),
-                style: const TextStyle(color: Colors.white, fontSize: 12),
-              ),
-            ),
-          ),
-      ],
-    );
-  }
+  // Widget _buildIconButton({
+  //   required IconData icon,
+  //   required String tooltip,
+  //   required VoidCallback onPressed,
+  //   int badgeCount = 0,
+  // }) {
+  //   return Stack(
+  //     children: [
+  //       IconButton(icon: Icon(icon), tooltip: tooltip, onPressed: onPressed),
+  //       if (badgeCount > 0)
+  //         Positioned(
+  //           right: 8,
+  //           top: 8,
+  //           child: Container(
+  //             padding: const EdgeInsets.all(4),
+  //             decoration: const BoxDecoration(
+  //               color: Colors.red,
+  //               shape: BoxShape.circle,
+  //             ),
+  //             child: Text(
+  //               badgeCount.toString(),
+  //               style: const TextStyle(color: Colors.white, fontSize: 12),
+  //             ),
+  //           ),
+  //         ),
+  //     ],
+  //   );
+  // }
 
   Widget _buildStatCard({
     required String title,
