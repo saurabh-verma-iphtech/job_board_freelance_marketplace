@@ -11,7 +11,10 @@ import 'package:job_board_freelance_marketplace/Screens/Dashboard/Main%20Pages/j
 import 'package:job_board_freelance_marketplace/Screens/Job/Client/client_job_detail.dart';
 import 'package:job_board_freelance_marketplace/Screens/Job/Client/client_job_list.dart';
 import 'package:job_board_freelance_marketplace/Screens/Job/Client/edit_job_client.dart';
+import 'package:job_board_freelance_marketplace/Screens/Job/Client/list_proposal_screen.dart';
+import 'package:job_board_freelance_marketplace/Screens/Job/Client/spendings_detail.dart';
 import 'package:job_board_freelance_marketplace/Screens/Job/Freelancer/job_detail_screen.dart';
+import 'package:job_board_freelance_marketplace/Screens/Job/Freelancer/my_proposals.dart';
 import 'package:job_board_freelance_marketplace/Screens/Job/Freelancer/submit_proposal_F.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:job_board_freelance_marketplace/Screens/Auth_Screen/login_screen.dart';
@@ -59,10 +62,12 @@ class MyApp extends ConsumerWidget {
         '/client-profile': (_) => const ClientProfileScreen(),
         '/job-feed': (_) => const JobFeedScreen(),
         '/post-job': (_) => const PostJobScreen(),
-        '/job-detail': (_) => const JobDetailScreen(jobId: ''),
+        '/job-detail': (_) => JobDetailScreen(jobId: ''),
         '/submit-proposal': (_) => const SubmitProposalScreen(),
         // '/contracts': (_) => const ContractsListScreen(),
         '/client-jobs': (_) => const ClientJobsScreen(),
+        '/my-proposals': (_) => const MyProposalsScreen(),
+        '/client-proposals': (_) => ClientProposalsScreen(),
         '/edit-job':
             (ctx) => EditJobScreen(
               jobId: ModalRoute.of(ctx)!.settings.arguments as String,

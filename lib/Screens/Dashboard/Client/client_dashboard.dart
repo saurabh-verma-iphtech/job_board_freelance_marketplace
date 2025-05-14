@@ -5,10 +5,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:job_board_freelance_marketplace/Screens/Auth_Screen/login_screen.dart';
 import 'package:job_board_freelance_marketplace/Screens/Dashboard/Client/client_profile_screen.dart';
-import 'package:job_board_freelance_marketplace/Screens/Dashboard/Client/new_proposals.dart';
 import 'package:job_board_freelance_marketplace/Screens/Job/Client/client_job_list.dart';
 import 'package:job_board_freelance_marketplace/Screens/Job/Client/list_proposal_screen.dart';
 import 'package:job_board_freelance_marketplace/Screens/Job/Client/spendings_detail.dart';
+import 'package:job_board_freelance_marketplace/Screens/Job/completedJob.dart';
 import 'package:job_board_freelance_marketplace/Screens/Job/contract_list_screen.dart';
 import 'package:job_board_freelance_marketplace/Services/theme_notifier.dart';
 
@@ -19,57 +19,67 @@ class ClientDashboard extends ConsumerStatefulWidget {
   ConsumerState<ClientDashboard> createState() => _ClientDashboardState();
 }
 
-class _ClientDashboardState extends ConsumerState<ClientDashboard> {
-  int _selectedIndex = 0;
+class _ClientDashboardState extends ConsumerState<ClientDashboard>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _opacityAnimation;
+  late Animation<double> _scaleAnimation;
+
   int _postedJobsCount = 0;
   int _newProposalsCount = 0;
   int _activeContractsCount = 0;
   double _totalSpent = 0.0;
-  String _userName = 'Loading…';
+  String _userName = 'Client';
+  int _totalProposalsCount = 0; // new
 
+  late StreamSubscription<QuerySnapshot> _totalPropsSub;
   late StreamSubscription _contractsSub;
   late StreamSubscription _propsSub;
-  late final StreamSubscription _sub;
-  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  late StreamSubscription _sub;
 
   @override
   void initState() {
     super.initState();
     _checkProfileCompletion();
+    _loadUserData();
     _listenToPostedJobs();
     _listenToNewProposals();
     _listenToActiveContracts();
-    _fetchTotalSpent(); // Add this
-    _loadUserName;
+    _fetchTotalSpent();
+    _fetchTotalProposals(); // call new fetch
+    _listenToTotalProposals();
+
+
+
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+
+    _opacityAnimation = Tween<double>(
+      begin: 0,
+      end: 1,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+
+    _scaleAnimation = Tween<double>(
+      begin: 0.95,
+      end: 1,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+
+    _controller.forward();
   }
 
-  @override
-  void dispose() {
-    _sub.cancel();
-    _propsSub.cancel();
-    _contractsSub.cancel();
-    super.dispose();
-  }
-
-  Future<void> _loadUserName() async {
-    try {
-      final uid = FirebaseAuth.instance.currentUser!.uid;
-      final doc =
-          await FirebaseFirestore.instance.collection('users').doc(uid).get();
-      final name = doc.data()?['name'] as String?;
-      setState(() {
-        _userName = name == null || name.isEmpty ? 'Unnamed User' : name;
-      });
-    } catch (_) {
-      setState(() {
-        _userName = 'Unnamed User';
-      });
-    }
+  Future<void> _loadUserData() async {
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+    final doc =
+        await FirebaseFirestore.instance.collection('users').doc(uid).get();
+    setState(() {
+      _userName = doc.data()?['name'] ?? 'Client';
+    });
   }
 
   Future<void> _fetchTotalSpent() async {
     final uid = FirebaseAuth.instance.currentUser!.uid;
-
     final contractsSnap =
         await FirebaseFirestore.instance
             .collection('contracts')
@@ -77,16 +87,22 @@ class _ClientDashboardState extends ConsumerState<ClientDashboard> {
             .where('status', isEqualTo: 'completed')
             .get();
 
-    double total = 0.0;
-    for (var doc in contractsSnap.docs) {
-      final data = doc.data();
-      final bid = data['agreedBid'] ?? 0.0;
-      total += bid is int ? bid.toDouble() : bid;
-    }
-
-    setState(() {
-      _totalSpent = total;
+    double total = contractsSnap.docs.fold(0.0, (sum, doc) {
+      final bid = doc.data()['agreedBid'] ?? 0.0;
+      return sum + (bid is int ? bid.toDouble() : bid);
     });
+
+    setState(() => _totalSpent = total);
+  }
+
+  Future<void> _fetchTotalProposals() async {
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+    final allSnap =
+        await FirebaseFirestore.instance
+            .collection('proposals')
+            .where('clientId', isEqualTo: uid)
+            .get();
+    setState(() => _totalProposalsCount = allSnap.size);
   }
 
   void _listenToActiveContracts() {
@@ -96,9 +112,9 @@ class _ClientDashboardState extends ConsumerState<ClientDashboard> {
         .where('clientId', isEqualTo: uid)
         .where('status', isEqualTo: 'ongoing')
         .snapshots()
-        .listen((snap) {
-          setState(() => _activeContractsCount = snap.docs.length);
-        });
+        .listen(
+          (snap) => setState(() => _activeContractsCount = snap.docs.length),
+        );
   }
 
   void _listenToPostedJobs() {
@@ -107,30 +123,34 @@ class _ClientDashboardState extends ConsumerState<ClientDashboard> {
         .collection('jobs')
         .where('createdBy', isEqualTo: uid)
         .snapshots()
-        .listen((snap) {
-          setState(() {
-            _postedJobsCount = snap.docs.length;
-          });
-        });
+        .listen((snap) => setState(() => _postedJobsCount = snap.docs.length));
   }
 
   void _listenToNewProposals() {
     final uid = FirebaseAuth.instance.currentUser!.uid;
     _propsSub = FirebaseFirestore.instance
         .collection('proposals')
-        .where(
-          'clientId', // ← adjust to your field name: e.g. 'clientId' or 'jobOwner'
-          isEqualTo: uid,
-        )
-        .where(
-          'status', // ← only “new” or “pending” ones
-          isEqualTo: 'pending',
-        )
+        .where('clientId', isEqualTo: uid)
+        .where('status', isEqualTo: 'pending')
+        .snapshots()
+        .listen(
+          (snap) => setState(() => _newProposalsCount = snap.docs.length),
+        );
+  }
+
+  void _listenToTotalProposals() {
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+    _totalPropsSub = FirebaseFirestore.instance
+        .collection('proposals')
+        .where('clientId', isEqualTo: uid)
         .snapshots()
         .listen((snap) {
-          setState(() => _newProposalsCount = snap.docs.length);
+          setState(() {
+            _totalProposalsCount = snap.docs.length;
+          });
         });
   }
+
 
   void _checkProfileCompletion() async {
     final doc =
@@ -144,289 +164,319 @@ class _ClientDashboardState extends ConsumerState<ClientDashboard> {
     }
   }
 
-  void _onItemTapped(int index) {
-    setState(() => _selectedIndex = index);
-    _scaffoldKey.currentState?.closeDrawer();
+  @override
+  void dispose() {
+    _controller.dispose();
+    _sub.cancel();
+    _propsSub.cancel();
+    _contractsSub.cancel();
+      _totalPropsSub.cancel(); // ← new
+
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final themeNotifier = ref.watch(themeNotifierProvider);
-    final isDark = themeNotifier.mode == ThemeMode.dark;
+    final colorScheme = theme.colorScheme;
+    final isDark = ref.watch(themeNotifierProvider).mode == ThemeMode.dark;
 
     return Scaffold(
-      key: _scaffoldKey,
-      appBar: AppBar(
-        backgroundColor: theme.scaffoldBackgroundColor,
-
-        title: const Text('Client Dashboard'),
-        leading: IconButton(
-          icon: const Icon(Icons.menu),
-          onPressed: () => _scaffoldKey.currentState?.openDrawer(),
-        ),
-      ),
-      drawer: _buildNavigationDrawer(theme, isDark),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors:
-                isDark
-                    ? [Colors.deepPurple.shade900, Colors.indigo.shade900]
-                    : [Colors.blue.shade50, Colors.purple.shade50],
+      appBar: _buildAppBar(theme),
+      body: SingleChildScrollView(
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                colorScheme.primary.withOpacity(0.1),
+                colorScheme.background,
+              ],
+            ),
           ),
-        ),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: AnimatedBuilder(
+              animation: _controller,
+              builder: (context, child) {
+                return Opacity(
+                  opacity: _opacityAnimation.value,
+                  child: Transform.scale(
+                    scale: _scaleAnimation.value,
+                    child: child,
+                  ),
+                );
+              },
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Welcome, ',
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                  ),
-                  StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-                    stream:
-                        FirebaseFirestore.instance
-                            .collection('users')
-                            .doc(FirebaseAuth.instance.currentUser!.uid)
-                            .snapshots(),
-                    builder: (context, snap) {
-                      final name =
-                          (snap.hasData && snap.data!.data()?['name'] != null)
-                              ? snap.data!.data()!['name'] as String
-                              : 'Unnamed User';
-                      return Text(
-                        name,
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      );
-                    },
-                  ),
+                  _buildWelcomeCard(theme),
+                  const SizedBox(height: 24),
+                  _buildStatsGrid(),
+                  const SizedBox(height: 24),
+                  _buildQuickActions(theme),
                 ],
               ),
-              const SizedBox(height: 20),
-              _buildDashboardCards(theme),
-            ],
+            ),
           ),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: theme.primaryColor,
-        tooltip: 'Post Job',
-        onPressed: () => Navigator.pushNamed(context, '/post-job'),
-        child: const Icon(Icons.post_add, color: Colors.white),
-      ),
+      floatingActionButton: _buildFloatingActionButton(theme),
     );
   }
 
-  Widget _buildNavigationDrawer(ThemeData theme, bool isDark) {
-    return Drawer(
-      child: Container(
-        decoration: BoxDecoration(
-          color: isDark ? Colors.grey.shade900 : Colors.white,
+  AppBar _buildAppBar(ThemeData theme) {
+    return AppBar(
+      title: Text(
+        'Welcome, $_userName',
+        style: TextStyle(
+          color: theme.colorScheme.primary,
+          fontWeight: FontWeight.bold,
         ),
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            DrawerHeader(
-              decoration: BoxDecoration(
-                color: theme.primaryColor.withOpacity(0.8),
+      ),
+      backgroundColor: theme.scaffoldBackgroundColor,
+      elevation: 0,
+      actions: [
+        _buildIconButton(
+          icon: Icons.work,
+          tooltip: 'My Jobs',
+          onPressed:
+              () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => ClientJobsScreen()),
               ),
-              child: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-                stream:
-                    FirebaseFirestore.instance
-                        .collection('users')
-                        .doc(FirebaseAuth.instance.currentUser!.uid)
-                        .snapshots(),
-                builder: (context, snap) {
-                  final name =
-                      (snap.hasData && snap.data!.data()?['name'] != null)
-                          ? snap.data!.data()!['name'] as String
-                          : 'Unnamed User';
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      CircleAvatar(
-                        radius: 40,
-                        child: Icon(Icons.person, size: 50),
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        name,
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  );
-                },
+          badgeCount: _postedJobsCount,
+        ),
+        IconButton(
+          icon: Icon(Icons.logout, color: theme.colorScheme.error),
+          onPressed: _signOut,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildWelcomeCard(ThemeData theme) {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Good ${_getGreetingTime()}!',
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: theme.colorScheme.primary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Manage your hiring activities',
+                    style: TextStyle(color: Colors.grey[600]),
+                  ),
+                ],
               ),
             ),
-            _buildDrawerItem(Icons.person, 'My Profile', 0),
-            _buildDrawerItem(Icons.folder_shared, 'My Contracts', 1),
-            _buildDrawerItem(Icons.list_alt, 'View Proposals', 2),
-            const Divider(),
-            _buildDrawerItem(Icons.logout, 'Log Out', 3),
+            const Icon(Icons.handshake, size: 40, color: Colors.blue),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildDrawerItem(IconData icon, String title, int index) {
-    return ListTile(
-      leading: Icon(
-        icon,
-        color: _selectedIndex == index ? Theme.of(context).primaryColor : null,
-      ),
-      title: Text(title),
-      selected: _selectedIndex == index,
-      onTap: () {
-        _onItemTapped(index);
-        _navigateToScreen(index);
-      },
-    );
-  }
-
-  void _navigateToScreen(int index) async {
-    final uid = FirebaseAuth.instance.currentUser!.uid;
-
-    // 1️⃣ Fetch the user doc just once here
-    final userDoc =
-        await FirebaseFirestore.instance.collection('users').doc(uid).get();
-    final role = userDoc.data()?['role'] as String? ?? 'client';
-    switch (index) {
-      case 0:
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => ClientProfileScreen()),
-        );
-        break;
-      case 1:
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => ContractsListScreen(role: role)),
-        );
-        break;
-      case 2:
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const ClientProposalsScreen()),
-        );
-        break;
-      case 3:
-        _signOut();
-        break;
-    }
-  }
-
-  Widget _buildDashboardCards(ThemeData theme) {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: GridView.count(
-        shrinkWrap: true,
-        physics: NeverScrollableScrollPhysics(),
-        crossAxisCount: 2,
-        crossAxisSpacing: 16,
-        mainAxisSpacing: 16,
-        children: [
-          _buildDashboardCardItem(
-            title: 'Posted Jobs',
-            value: _postedJobsCount.toString(),
-            icon: Icons.work,
-            onTap:
-                () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => ClientJobsScreen()),
-                ),
-          ),
-          _buildDashboardCardItem(
-            title: 'Active Contracts',
-            value: _activeContractsCount.toString(),
-            icon: Icons.assignment_turned_in,
-            onTap: () async {
-              final uid = FirebaseAuth.instance.currentUser!.uid;
-              final userDoc =
-                  await FirebaseFirestore.instance
-                      .collection('users')
-                      .doc(uid)
-                      .get();
-              final role = userDoc.data()?['role'] ?? 'client';
-
-              Navigator.push(
+  Widget _buildStatsGrid() {
+    return GridView.count(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      crossAxisCount: 2,
+      crossAxisSpacing: 16,
+      mainAxisSpacing: 16,
+      children: [
+        _buildStatCard(
+          title: 'Posted Jobs',
+          value: _postedJobsCount.toString(),
+          color: Colors.blue,
+          icon: Icons.work_outline,
+          onTap:
+              () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => ClientJobsScreen()),
+              ),
+        ),
+        _buildStatCard(
+          title: 'Active Contracts',
+          value: _activeContractsCount.toString(),
+          color: Colors.green,
+          icon: Icons.assignment_turned_in,
+          onTap:
+              () => Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => ContractsListScreen(role: role),
+                  builder: (_) => ContractsListScreen(role: 'client'),
                 ),
-              );
-            },
-          ),
-          _buildDashboardCardItem(
-            title: 'New Proposals',
-            value: _newProposalsCount.toString(),
-            icon: Icons.markunread,
-            onTap:
-                () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => NewProposalsScreen()),
+              ),
+        ),
+        _buildStatCard(
+          title: 'New Proposals',
+          value: _newProposalsCount.toString(),
+          color: Colors.orange,
+          icon: Icons.pending_actions,
+          onTap: () => Navigator.pushNamed(context, '/client-proposals'),
+        ),
+        _buildStatCard(
+          title: 'Total Proposals',
+          value: _totalProposalsCount.toString(),
+          color: Colors.redAccent,
+          icon: Icons.local_grocery_store_outlined,
+          onTap:
+              () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => ClientProposalsScreen()),
+              ),
+        ),
+        _buildStatCard(
+          title: 'Total Spent',
+          value: '\$${_totalSpent.toStringAsFixed(2)}',
+          color: Colors.green,
+          icon: Icons.attach_money,
+          onTap:
+              () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder:
+                      (_) => SpendingDetailsScreen(totalSpent: _totalSpent),
                 ),
-          ),
-          _buildDashboardCardItem(
-            title: 'Total Spent',
-            value: '\$${_totalSpent.toStringAsFixed(2)}',
-            icon: Icons.attach_money,
-            onTap:
-                () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder:
-                        (_) => SpendingDetailsScreen(totalSpent: _totalSpent),
-                  ),
-                ),
-          ),
-        ],
-      ),
+              ),
+        ),
+        _buildStatCard(
+          title: 'Completed Jobs',
+          value: _newProposalsCount.toString(),
+          color: Colors.purple,
+          icon: Icons.verified,
+          onTap:
+              () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => CompletedJobsScreen()),
+              ),
+        ),
+      ],
     );
   }
 
+  Widget _buildQuickActions(ThemeData theme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Quick Actions',
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.bold,
+            color: theme.colorScheme.primary,
+          ),
+        ),
+        const SizedBox(height: 16),
+        Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: [
+            _buildActionButton(
+              icon: Icons.person,
+              label: 'Profile',
+              onPressed:
+                  () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => ClientProfileScreen()),
+                  ),
+            ),
+            _buildActionButton(
+              icon: Icons.business,
+              label: 'Post Job',
+              onPressed: () => Navigator.pushNamed(context, '/post-job'),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
 
-  Widget _buildDashboardCardItem({
+  Widget _buildFloatingActionButton(ThemeData theme) {
+    return FloatingActionButton(
+      onPressed: () => Navigator.pushNamed(context, '/post-job'),
+      backgroundColor: theme.colorScheme.primary,
+      foregroundColor: theme.colorScheme.onPrimary,
+      elevation: 6,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: const Icon(Icons.post_add, size: 28),
+    );
+  }
+
+  Widget _buildIconButton({
+    required IconData icon,
+    required String tooltip,
+    required VoidCallback onPressed,
+    int badgeCount = 0,
+  }) {
+    return Stack(
+      children: [
+        IconButton(icon: Icon(icon), tooltip: tooltip, onPressed: onPressed),
+        if (badgeCount > 0)
+          Positioned(
+            right: 8,
+            top: 8,
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: const BoxDecoration(
+                color: Colors.red,
+                shape: BoxShape.circle,
+              ),
+              child: Text(
+                badgeCount.toString(),
+                style: const TextStyle(color: Colors.white, fontSize: 12),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildStatCard({
     required String title,
     required String value,
+    required Color color,
     required IconData icon,
     required VoidCallback onTap,
   }) {
-    final theme = Theme.of(context);
     return InkWell(
       onTap: onTap,
       child: Card(
         elevation: 4,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(16.0),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(icon, size: 40, color: theme.primaryColor),
-              const SizedBox(height: 10),
+              Icon(icon, size: 32, color: color),
+              const SizedBox(height: 12),
               Text(
                 value,
-                style: const TextStyle(
-                  fontSize: 22,
+                style: TextStyle(
+                  fontSize: 24,
                   fontWeight: FontWeight.bold,
+                  color: color,
                 ),
               ),
-              const SizedBox(height: 4),
-              Text(title, style: TextStyle(color: Colors.grey.shade600)),
+              const SizedBox(height: 8),
+              Text(
+                title,
+                style: TextStyle(color: Colors.grey[600], fontSize: 14),
+              ),
             ],
           ),
         ),
@@ -434,6 +484,28 @@ class _ClientDashboardState extends ConsumerState<ClientDashboard> {
     );
   }
 
+  Widget _buildActionButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onPressed,
+  }) {
+    return ElevatedButton.icon(
+      icon: Icon(icon, size: 20),
+      label: Text(label),
+      style: ElevatedButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+      onPressed: onPressed,
+    );
+  }
+
+  String _getGreetingTime() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) return 'Morning';
+    if (hour < 17) return 'Afternoon';
+    return 'Evening';
+  }
 
   Future<void> _signOut() async {
     await FirebaseAuth.instance.signOut();

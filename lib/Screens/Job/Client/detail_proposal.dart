@@ -333,8 +333,8 @@ class _AnimatedDetailContentState extends State<AnimatedDetailContent>
                   const SizedBox(height: 20),
                   _buildUserSection('Freelancer', widget.freelancer),
                   const SizedBox(height: 20),
-                  _buildUserSection('Client', widget.client),
-                  const SizedBox(height: 20),
+                  // _buildUserSection('Client', widget.client),
+                  // const SizedBox(height: 20),
                   _buildProposalDetails(),
                   if (widget.isClient && widget.proposal['status'] == 'pending')
                     _buildActionButtons(),
