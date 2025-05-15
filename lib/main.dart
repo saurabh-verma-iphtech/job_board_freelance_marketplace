@@ -20,10 +20,16 @@ import 'package:job_board_freelance_marketplace/Screens/Auth_Screen/login_screen
 import 'package:job_board_freelance_marketplace/Screens/Auth_Screen/signup_screen.dart';
 import 'package:job_board_freelance_marketplace/Services/theme_notifier.dart';
 import 'package:job_board_freelance_marketplace/firebase_options.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' show Supabase;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await Firebase.initializeApp();
+  await Supabase.initialize(
+    url: 'https://qpmddcybbzwioqzqxwfc.supabase.co',
+    anonKey:
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwbWRkY3liYnp3aW9xenF4d2ZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQxMTM1MzAsImV4cCI6MjA1OTY4OTUzMH0.bx6g7WEZMAtbH7hZGxPvYrLTgK5z1QU9Aa-19MDuHwk',
+  );
   runApp(const ProviderScope(child: MyApp()));
 }
 

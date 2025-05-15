@@ -50,8 +50,8 @@ class _ChatScreenState extends State<ChatScreen>
         .collection('messages');
     _messagesQuery = _messagesCollection.orderBy('timestamp', descending: true);
 
-    _focusNode.addListener(() {
-      if (_focusNode.hasFocus && _showEmojiPicker) {
+     _focusNode.addListener(() {
+      if (_focusNode.hasFocus) {
         setState(() => _showEmojiPicker = false);
       }
     });
@@ -151,12 +151,13 @@ class _ChatScreenState extends State<ChatScreen>
   }
 
   void _toggleEmojiPicker() {
-    _focusNode.unfocus();
-    _focusNode.canRequestFocus = false;
-    setState(() => _showEmojiPicker = !_showEmojiPicker);
-    Future.delayed(const Duration(milliseconds: 100), () {
-      _focusNode.canRequestFocus = true;
+    setState(() {
+      _showEmojiPicker = !_showEmojiPicker;
     });
+    // Close keyboard if it's open
+    if (_showEmojiPicker) {
+      _focusNode.unfocus();
+    }
   }
 
   @override
@@ -243,7 +244,6 @@ class _ChatScreenState extends State<ChatScreen>
                 },
               ),
             ),
-            _buildMessageInput(colorScheme),
             if (_showEmojiPicker)
               SizedBox(
                 height: 250,
@@ -253,15 +253,74 @@ class _ChatScreenState extends State<ChatScreen>
                   },
                   config: const Config(
                     emojiViewConfig: EmojiViewConfig(
-                      columns: 7, // number of columns
-                      emojiSizeMax: 32, // max size of each emoji
-                      verticalSpacing: 0, // optional
-                      horizontalSpacing: 0, // optional
+                      columns: 7,
+                      emojiSizeMax: 32,
+                      verticalSpacing: 0,
+                      horizontalSpacing: 0,
                     ),
                   ),
                 ),
               ),
+            _buildMessageInput(colorScheme),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMessageInput(ColorScheme colorScheme) {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: Form(
+          key: _formKey,
+          child: Material(
+            elevation: 4,
+            borderRadius: BorderRadius.circular(30),
+            child: Container(
+              decoration: BoxDecoration(
+                color: colorScheme.surface,
+                borderRadius: BorderRadius.circular(30),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: Icon(
+                      Icons.emoji_emotions_outlined,
+                      color: colorScheme.onSurface.withOpacity(0.6),
+                    ),
+                    onPressed: _toggleEmojiPicker,
+                  ),
+                  Expanded(
+                    child: TextFormField(
+                      focusNode: _focusNode,
+                      controller: _messageController,
+                      textCapitalization: TextCapitalization.sentences,
+                      maxLines: 3,
+                      minLines: 1,
+                      decoration: InputDecoration(
+                        hintText: 'Type your message...',
+                        border: InputBorder.none,
+                        hintStyle: TextStyle(
+                          color: colorScheme.onSurface.withOpacity(0.4),
+                        ),
+                      ),
+                      validator:
+                          (v) =>
+                              v?.trim().isEmpty ?? true
+                                  ? 'Message cannot be empty'
+                                  : null,
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.send_rounded, color: colorScheme.primary),
+                    onPressed: _sendMessage,
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     );
@@ -341,64 +400,6 @@ class _ChatScreenState extends State<ChatScreen>
           if (isMe)
             Icon(Icons.check_circle, color: colorScheme.primary, size: 16),
         ],
-      ),
-    );
-  }
-
-  Widget _buildMessageInput(ColorScheme colorScheme) {
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Form(
-          key: _formKey,
-          child: Material(
-            elevation: 4,
-            borderRadius: BorderRadius.circular(30),
-            child: Container(
-              decoration: BoxDecoration(
-                color: colorScheme.surface,
-                borderRadius: BorderRadius.circular(30),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Row(
-                children: [
-                  IconButton(
-                    icon: Icon(
-                      Icons.emoji_emotions_outlined,
-                      color: colorScheme.onSurface.withOpacity(0.6),
-                    ),
-                    onPressed: _toggleEmojiPicker,
-                  ),
-                  Expanded(
-                    child: TextFormField(
-                      focusNode: _focusNode,
-                      controller: _messageController,
-                      textCapitalization: TextCapitalization.sentences,
-                      maxLines: 3,
-                      minLines: 1,
-                      decoration: InputDecoration(
-                        hintText: 'Type your message...',
-                        border: InputBorder.none,
-                        hintStyle: TextStyle(
-                          color: colorScheme.onSurface.withOpacity(0.4),
-                        ),
-                      ),
-                      validator:
-                          (v) =>
-                              v?.trim().isEmpty ?? true
-                                  ? 'Message cannot be empty'
-                                  : null,
-                    ),
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.send_rounded, color: colorScheme.primary),
-                    onPressed: _sendMessage,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
       ),
     );
   }

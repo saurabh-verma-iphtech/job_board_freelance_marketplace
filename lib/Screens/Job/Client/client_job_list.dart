@@ -1,354 +1,3 @@
-// import 'package:flutter/material.dart';
-// import 'package:cloud_firestore/cloud_firestore.dart';
-// import 'package:firebase_auth/firebase_auth.dart';
-// import 'package:flutter_riverpod/flutter_riverpod.dart';
-// import 'package:job_board_freelance_marketplace/Screens/Job/Client/edit_job_client.dart';
-// import 'package:job_board_freelance_marketplace/Services/theme_notifier.dart';
-
-// class ClientJobsScreen extends ConsumerStatefulWidget {
-//   const ClientJobsScreen({super.key});
-
-//   @override
-//   _ClientJobsScreenState createState() => _ClientJobsScreenState();
-// }
-
-// class _ClientJobsScreenState extends ConsumerState<ClientJobsScreen>
-//     with SingleTickerProviderStateMixin {
-//   late AnimationController _controller;
-//   late Animation<double> _opacityAnimation;
-//   late Animation<Offset> _slideAnimation;
-
-//   @override
-//   void initState() {
-//     super.initState();
-
-//     _controller = AnimationController(
-//       vsync: this,
-//       duration: const Duration(milliseconds: 800),
-//     );
-
-//     _opacityAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-//       CurvedAnimation(
-//         parent: _controller,
-//         curve: const Interval(0.0, 0.5, curve: Curves.easeIn),
-//       ),
-//     );
-
-//     _slideAnimation = Tween<Offset>(
-//       begin: const Offset(0, 0.2),
-//       end: Offset.zero,
-//     ).animate(
-//       CurvedAnimation(
-//         parent: _controller,
-//         curve: const Interval(0.5, 1.0, curve: Curves.easeOut),
-//       ),
-//     );
-
-//     _controller.forward();
-//   }
-
-//   @override
-//   void dispose() {
-//     _controller.dispose();
-//     super.dispose();
-//   }
-
-//   @override
-//   Widget build(BuildContext context) {
-//     final uid = FirebaseAuth.instance.currentUser!.uid;
-//     final theme = Theme.of(context);
-//      final themeNotifier = ref.watch(themeNotifierProvider);
-//     final isDark = themeNotifier.mode == ThemeMode.dark;
-
-//     return Scaffold(
-//       appBar: AppBar(
-//         title: const Text('My Posted Jobs'),
-//         centerTitle: true,
-//         elevation: 0,
-//         backgroundColor: Colors.transparent,
-//       ),
-//       body: AnimatedBuilder(
-//         animation: _controller,
-//         builder: (context, child) {
-//           return Container(
-//             decoration: BoxDecoration(
-//               gradient: LinearGradient(
-//                 begin: Alignment.topCenter,
-//                 end: Alignment.bottomCenter,
-//                 colors:
-//                     isDark
-//                         ? [Colors.deepPurple.shade900, Colors.indigo.shade900]
-//                         : [Colors.blue.shade50, Colors.purple.shade50],
-//               ),
-//             ),
-//             child: FadeTransition(
-//               opacity: _opacityAnimation,
-//               child: SlideTransition(
-//                 position: _slideAnimation,
-//                 child: _buildJobList(uid, theme),
-//               ),
-//             ),
-//           );
-//         },
-//       ),
-//       floatingActionButton: FloatingActionButton(
-//         backgroundColor: theme.primaryColor,
-//         child: const Icon(Icons.add, color: Colors.white),
-//         onPressed: () => Navigator.pushNamed(context, '/post-job'),
-//       ),
-//     );
-//   }
-
-//   Widget _buildJobList(String uid, ThemeData theme) {
-//     return StreamBuilder<QuerySnapshot>(
-//       stream:
-//           FirebaseFirestore.instance
-//               .collection('jobs')
-//               .where('createdBy', isEqualTo: uid)
-//               .orderBy('createdAt', descending: true)
-//               .snapshots(),
-//       builder: (ctx, snap) {
-//         if (snap.hasError) {
-//           return Center(child: Text('Error: ${snap.error}'));
-//         }
-
-//         if (snap.connectionState == ConnectionState.waiting) {
-//           return const Center(child: CircularProgressIndicator());
-//         }
-
-//         final docs = snap.data!.docs;
-//         if (docs.isEmpty) {
-//           return _buildEmptyState(theme);
-//         }
-
-//         return ListView.separated(
-//           padding: const EdgeInsets.all(16),
-//           itemCount: docs.length,
-//           separatorBuilder: (_, i) => const SizedBox(height: 12),
-//           itemBuilder: (ctx, i) {
-//             final job = docs[i];
-//             return _buildJobCard(job, theme);
-//           },
-//         );
-//       },
-//     );
-//   }
-
-//   Widget _buildJobCard(QueryDocumentSnapshot job, ThemeData theme) {
-//     final data = job.data() as Map<String, dynamic>;
-//     final jobId = job.id;
-//     final status = data['status'] ?? 'open';
-
-//     return AnimatedContainer(
-//       duration: const Duration(milliseconds: 300),
-//       curve: Curves.easeInOut,
-//       child: Card(
-//         elevation: 4,
-//         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-//         child: InkWell(
-//           borderRadius: BorderRadius.circular(15),
-//           onTap:
-//               () => Navigator.pushNamed(
-//                 context,
-//                 '/client-job-detail',
-//                 arguments: jobId,
-//               ),
-//           child: Padding(
-//             padding: const EdgeInsets.all(16),
-//             child: Column(
-//               crossAxisAlignment: CrossAxisAlignment.start,
-//               children: [
-//                 Row(
-//                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-//                   children: [
-//                     Expanded(
-//                       child: Text(
-//                         data['title'] ?? 'No title',
-//                         style: theme.textTheme.titleMedium?.copyWith(
-//                           fontWeight: FontWeight.bold,
-//                         ),
-//                         overflow: TextOverflow.ellipsis,
-//                       ),
-//                     ),
-//                     _buildStatusChip(status, theme),
-//                   ],
-//                 ),
-//                 Text(
-//                   data['description'] ?? '',
-//                   style: theme.textTheme.bodyMedium,
-//                   maxLines: 2,
-//                   overflow: TextOverflow.ellipsis,
-//                 ),
-//                 Row(
-//                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-//                   children: [
-//                     _buildInfoItem(
-//                       Icons.attach_money,
-//                       '${data['budget']?.toStringAsFixed(2) ?? '0'}',
-//                       theme,
-//                     ),
-//                     _buildPopupMenu(jobId, status, theme),
-//                   ],
-//                 ),
-//               ],
-//             ),
-//           ),
-//         ),
-//       ),
-//     );
-//   }
-
-//   Widget _buildStatusChip(String status, ThemeData theme) {
-//     return Chip(
-//       label: Text(status.toUpperCase()),
-//       backgroundColor:
-//           status == 'open' ? Colors.green.shade100 : Colors.orange.shade100,
-//       labelStyle: TextStyle(
-//         color:
-//             status == 'open' ? Colors.green.shade800 : Colors.orange.shade800,
-//         fontSize: 12,
-//         fontWeight: FontWeight.bold,
-//       ),
-//     );
-//   }
-
-//   Widget _buildInfoItem(IconData icon, String text, ThemeData theme) {
-//     return Row(
-//       children: [
-//         Icon(icon, size: 18, color: theme.primaryColor),
-//         const SizedBox(width: 4),
-//         Text(text, style: theme.textTheme.bodyMedium),
-//       ],
-//     );
-//   }
-
-//   Widget _buildPopupMenu(String jobId, String status, ThemeData theme) {
-//     return PopupMenuButton<String>(
-//       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-//       onSelected: (choice) => _handleMenuChoice(choice, jobId, status),
-//       itemBuilder:
-//           (_) => [
-//             PopupMenuItem(
-//               value: 'edit',
-//               child: ListTile(
-//                 leading: Icon(Icons.edit, color: theme.primaryColor),
-//                 title: Text('Edit', style: theme.textTheme.bodyMedium),
-//               ),
-//             ),
-//             PopupMenuItem(
-//               value: 'delete',
-//               child: ListTile(
-//                 leading: Icon(Icons.delete, color: Colors.red.shade400),
-//                 title: Text('Delete', style: theme.textTheme.bodyMedium),
-//               ),
-//             ),
-//             PopupMenuItem(
-//               value: status == 'open' ? 'close' : 'reopen',
-//               child: ListTile(
-//                 leading: Icon(
-//                   status == 'open' ? Icons.lock : Icons.lock_open,
-//                   color: status == 'open' ? Colors.orange : Colors.green,
-//                 ),
-//                 title: Text(
-//                   status == 'open' ? 'Close Job' : 'Reopen Job',
-//                   style: theme.textTheme.bodyMedium,
-//                 ),
-//               ),
-//             ),
-//           ],
-//     );
-//   }
-
-//   Widget _buildEmptyState(ThemeData theme) {
-//     return Center(
-//       child: Column(
-//         mainAxisAlignment: MainAxisAlignment.center,
-//         children: [
-//           Icon(Icons.work_outline, size: 80, color: theme.primaryColor),
-//           const SizedBox(height: 20),
-//           Text('No Jobs Posted Yet', style: theme.textTheme.titleMedium),
-//           const SizedBox(height: 10),
-//           Text(
-//             'Tap the + button to post your first job',
-//             style: theme.textTheme.bodyMedium,
-//           ),
-//         ],
-//       ),
-//     );
-//   }
-
-//   Future<void> _handleMenuChoice(
-//     String choice,
-//     String jobId,
-//     String status,
-//   ) async {
-//     final jobRef = FirebaseFirestore.instance.collection('jobs').doc(jobId);
-
-//     switch (choice) {
-//       case 'edit':
-//         Navigator.push(
-//           context,
-//           MaterialPageRoute(builder: (_) => EditJobScreen(jobId: jobId)),
-//         );
-//         break;
-
-//       case 'delete':
-//         final confirmed = await showDialog<bool>(
-//           context: context,
-//           builder:
-//               (_) => AlertDialog(
-//                 title: const Text('Delete Job?'),
-//                 content: const Text('This action cannot be undone.'),
-//                 actions: [
-//                   TextButton(
-//                     onPressed: () => Navigator.pop(context, false),
-//                     child: const Text('Cancel'),
-//                   ),
-//                   TextButton(
-//                     onPressed: () => Navigator.pop(context, true),
-//                     child: const Text(
-//                       'Delete',
-//                       style: TextStyle(color: Colors.red),
-//                     ),
-//                   ),
-//                 ],
-//               ),
-//         );
-//         if (confirmed == true) {
-//           await jobRef.delete();
-//           ScaffoldMessenger.of(context).showSnackBar(
-//             const SnackBar(
-//               content: Text('Job deleted'),
-//               behavior: SnackBarBehavior.floating,
-//               shape: RoundedRectangleBorder(
-//                 borderRadius: BorderRadius.all(Radius.circular(10)),
-//               ),
-//             ),
-//           );
-//         }
-//         break;
-
-//       case 'close':
-//       case 'reopen':
-//         final newStatus = choice == 'close' ? 'closed' : 'open';
-//         await jobRef.update({'status': newStatus});
-//         ScaffoldMessenger.of(context).showSnackBar(
-//           SnackBar(
-//             content: Text(
-//               'Job ${newStatus == 'closed' ? 'closed' : 'reopened'}',
-//             ),
-//             behavior: SnackBarBehavior.floating,
-//             shape: RoundedRectangleBorder(
-//               borderRadius: BorderRadius.all(Radius.circular(10)),
-//             ),
-//           ),
-//         );
-//         break;
-//     }
-//   }
-// }
-
-
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -357,6 +6,7 @@ import 'package:job_board_freelance_marketplace/Screens/Job/Client/edit_job_clie
 import 'package:job_board_freelance_marketplace/Services/theme_notifier.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:intl/intl.dart';
 
 class ClientJobsScreen extends ConsumerStatefulWidget {
   const ClientJobsScreen({super.key});
@@ -395,19 +45,8 @@ class _ClientJobsScreenState extends ConsumerState<ClientJobsScreen>
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'My Posted Jobs',),
+        title: const Text('My Posted Jobs'),
         centerTitle: true,
-        // flexibleSpace: Container(
-        //   decoration: BoxDecoration(
-        //     gradient: LinearGradient(
-        //       colors:
-        //           isDark
-        //               ? [const Color.fromARGB(255, 189, 178, 222), const Color.fromARGB(255, 140, 150, 231)]
-        //               : [const Color.fromARGB(255, 92, 164, 227), const Color.fromARGB(255, 214, 170, 227)],
-        //     ),
-        //   ),
-        // ),
         elevation: 8,
         shadowColor: Colors.black.withOpacity(0.3),
       ),
@@ -461,33 +100,109 @@ class _ClientJobsScreenState extends ConsumerState<ClientJobsScreen>
           return _buildEmptyState(theme);
         }
 
+        // Group jobs by week
+        final Map<String, List<QueryDocumentSnapshot>> groupedJobs = {};
+        for (final doc in docs) {
+          final data = doc.data() as Map<String, dynamic>;
+          final ts = data['createdAt'] as Timestamp?;
+          if (ts != null) {
+            final date = ts.toDate();
+            final weekKey = _getWeekKey(date);
+            groupedJobs.putIfAbsent(weekKey, () => []).add(doc);
+          } else {
+            // Handle jobs without a timestamp
+            const weekKey = 'Unknown Date';
+            groupedJobs.putIfAbsent(weekKey, () => []).add(doc);
+          }
+        }
+
         return AnimationLimiter(
-          child: ListView.separated(
+          child: ListView.builder(
             controller: _scrollController,
             padding: const EdgeInsets.all(16),
-            itemCount: docs.length,
-            separatorBuilder: (_, i) => const SizedBox(height: 16),
-            itemBuilder: (ctx, i) {
-              final job = docs[i];
-              return AnimationConfiguration.staggeredList(
-                position: i,
-                duration: const Duration(milliseconds: 500),
-                child: SlideAnimation(
-                  verticalOffset: 50.0,
-                  child: FadeInAnimation(
-                    child: _JobCard(
-                      job: job,
-                      theme: theme,
-                      onDelete: () => _handleDeleteJob(job.id),
-                    ),
-                  ),
-                ),
+            itemCount: groupedJobs.length * 2, // *2 for dividers
+            itemBuilder: (context, index) {
+              if (index.isOdd) {
+                // Divider between weeks
+                final weekIndex = index ~/ 2;
+                final weekKey = groupedJobs.keys.elementAt(weekIndex);
+                return _buildWeekDivider(weekKey);
+              }
+
+              // Job cards for this week
+              final weekIndex = index ~/ 2;
+              final weekKey = groupedJobs.keys.elementAt(weekIndex);
+              final jobs = groupedJobs[weekKey]!;
+
+              return Column(
+                children:
+                    jobs.map((job) {
+                      return AnimationConfiguration.staggeredList(
+                        position: jobs.indexOf(job),
+                        duration: const Duration(milliseconds: 500),
+                        child: SlideAnimation(
+                          verticalOffset: 50.0,
+                          child: FadeInAnimation(
+                            child: Padding(
+                              padding: const EdgeInsets.only(bottom: 16),
+                              child: _JobCard(
+                                job: job,
+                                theme: theme,
+                                onDelete: () => _handleDeleteJob(job.id),
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
               );
             },
           ),
         );
       },
     );
+  }
+
+  Widget _buildWeekDivider(String weekKey) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        children: [
+          Expanded(child: Divider(thickness: 1, color: Colors.grey[400])),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+            child: Text(
+              weekKey,
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          Expanded(child: Divider(thickness: 1, color: Colors.grey[400])),
+        ],
+      ),
+    );
+  }
+
+  String _getWeekKey(DateTime date) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final yesterday = today.subtract(const Duration(days: 1));
+    final weekStart = today.subtract(Duration(days: today.weekday - 1));
+    final lastWeekStart = weekStart.subtract(const Duration(days: 7));
+
+    if (date.isAfter(today)) {
+      return 'Today';
+    } else if (date.isAfter(yesterday)) {
+      return 'Yesterday';
+    } else if (date.isAfter(weekStart)) {
+      return 'This Week';
+    } else if (date.isAfter(lastWeekStart)) {
+      return 'Last Week';
+    } else {
+      return DateFormat('MMMM yyyy').format(date);
+    }
   }
 
   Widget _buildShimmerLoader() {
@@ -698,7 +413,7 @@ class _JobCard extends StatelessWidget {
                     _InfoChip(
                       icon: Icons.attach_money,
                       value:
-                          '${data['budget']?.toStringAsFixed(2) ?? '0.00'}',
+                          '\$${data['budget']?.toStringAsFixed(2) ?? '0.00'}',
                       color: Colors.green,
                     ),
                     _JobActionsMenu(
