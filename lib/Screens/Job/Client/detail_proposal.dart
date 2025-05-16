@@ -1,192 +1,13 @@
-
-// // lib/screens/proposal_detail_screen.dart
-// import 'package:cloud_firestore/cloud_firestore.dart';
-// import 'package:firebase_auth/firebase_auth.dart';
-// import 'package:flutter/material.dart';
-
-// class ProposalDetailScreen extends StatelessWidget {
-//   final String proposalId;
-//   const ProposalDetailScreen({Key? key, required this.proposalId})
-//     : super(key: key);
-
-//   Future<Map<String, dynamic>> _loadProposalData() async {
-//     final db = FirebaseFirestore.instance;
-
-//     // 1️ Load the proposal
-//     final propSnap = await db.collection('proposals').doc(proposalId).get();
-//     if (!propSnap.exists) throw Exception('Proposal not found');
-//     final proposal = propSnap.data()!;
-
-//     // 2️ Load the job
-//     final jobSnap = await db.collection('jobs').doc(proposal['jobId']).get();
-//     if (!jobSnap.exists) throw Exception('Job not found');
-//     final job = jobSnap.data()!;
-
-//     // 3️ Load the client (use `createdBy` from the job doc)
-//     final clientSnap = await db.collection('users').doc(job['createdBy']).get();
-//     if (!clientSnap.exists) throw Exception('Client not found');
-//     final client = clientSnap.data()!;
-
-//     // 4️ Load the freelancer
-//     final freelancerSnap =
-//         await db.collection('users').doc(proposal['freelancerId']).get();
-//     if (!freelancerSnap.exists) throw Exception('Freelancer not found');
-//     final freelancer = freelancerSnap.data()!;
-
-//     return {
-//       'proposal': proposal,
-//       'job': job,
-//       'client': client,
-//       'freelancer': freelancer,
-//     };
-//   }
-
-//   @override
-//   Widget build(BuildContext context) {
-//     final currentUid = FirebaseAuth.instance.currentUser!.uid;
-//     final propRef = FirebaseFirestore.instance
-//         .collection('proposals')
-//         .doc(proposalId);
-
-//     return Scaffold(
-//       appBar: AppBar(title: const Text('Proposal Details')),
-//       body: FutureBuilder<Map<String, dynamic>>(
-//         future: _loadProposalData(),
-//         builder: (ctx, snap) {
-//           if (snap.connectionState == ConnectionState.waiting) {
-//             return const Center(child: CircularProgressIndicator());
-//           }
-//           if (snap.hasError || !snap.hasData) {
-//             return Center(child: Text('Error: ${snap.error}'));
-//           }
-
-//           final proposal = snap.data!['proposal'] as Map<String, dynamic>;
-//           final job = snap.data!['job'] as Map<String, dynamic>;
-//           final client = snap.data!['client'] as Map<String, dynamic>;
-//           final freelancer = snap.data!['freelancer'] as Map<String, dynamic>;
-//           final isClient = currentUid == job['createdBy'];
-
-//           return SingleChildScrollView(
-//             padding: const EdgeInsets.all(16),
-//             child: Column(
-//               crossAxisAlignment: CrossAxisAlignment.start,
-//               children: [
-//                 // Job Info
-//                 Text(
-//                   job['title'] ?? 'Untitled Job',
-//                   style: const TextStyle(
-//                     fontSize: 20,
-//                     fontWeight: FontWeight.bold,
-//                   ),
-//                 ),
-//                 const SizedBox(height: 8),
-//                 Text(job['description'] ?? ''),
-
-//                 const Divider(height: 32),
-
-//                 // Freelancer Info
-//                 Text(
-//                   'Freelancer: ${freelancer['name']}',
-//                   style: const TextStyle(fontWeight: FontWeight.bold),
-//                 ),
-//                 Text('Contact: ${freelancer['email']}'),
-
-//                 const SizedBox(height: 16),
-
-//                 // Client Info
-//                 Text(
-//                   'Client: ${client['name']}',
-//                   style: const TextStyle(fontWeight: FontWeight.bold),
-//                 ),
-//                 Text('Contact: ${client['email']}'),
-
-//                 const Divider(height: 32),
-
-//                 // Proposal Info
-//                 Text('Bid: \$${proposal['bid']}'),
-//                 const SizedBox(height: 8),
-//                 const Text(
-//                   'Cover Letter:',
-//                   style: TextStyle(fontWeight: FontWeight.bold),
-//                 ),
-//                 Text(proposal['message'] ?? ''),
-
-//                 const Divider(height: 32),
-
-//                 // Status
-//                 Text(
-//                   'Status: ${proposal['status'].toString().toUpperCase()}',
-//                   style: TextStyle(
-//                     color:
-//                         proposal['status'] == 'accepted'
-//                             ? Colors.green
-//                             : proposal['status'] == 'rejected'
-//                             ? Colors.red
-//                             : null,
-//                     fontWeight: FontWeight.bold,
-//                   ),
-//                 ),
-
-//                 SizedBox(height: 20,),
-
-//                 // Accept / Reject (clients only, once)
-//                 if (isClient && proposal['status'] == 'pending')
-//                   Row(
-//                     children: [
-//                       Expanded(
-//                         child: ElevatedButton(
-//                           child: const Text('Accept'),
-//                           onPressed: () async {
-//                             // 1. Update proposal status
-//                             await propRef.update({'status': 'accepted'});
-//                             // 2. Create contract
-//                             await FirebaseFirestore.instance
-//                                 .collection('contracts')
-//                                 .add({
-//                                   'jobId': proposal['jobId'],
-//                                   'clientId': job['createdBy'],
-//                                   'freelancerId': proposal['freelancerId'],
-//                                   'agreedBid': proposal['bid'],
-//                                   'status': 'ongoing',
-//                                   'startedAt': FieldValue.serverTimestamp(),
-//                                 });
-//                             Navigator.pop(context);
-//                           },
-//                         ),
-//                       ),
-//                       const SizedBox(width: 16),
-//                       Expanded(
-//                         child: OutlinedButton(
-//                           child: const Text('Reject'),
-//                           onPressed: () async {
-//                             await propRef.update({'status': 'rejected'});
-//                             Navigator.pop(context);
-//                           },
-//                         ),
-//                       ),
-//                     ],
-//                   ),
-//               ],
-//             ),
-//           );
-//         },
-//       ),
-//     );
-//   }
-// }
-
-
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:job_board_freelance_marketplace/Screens/Job/Client/freeClientProfile.dart';
 
 class ProposalDetailScreen extends StatelessWidget {
   final String proposalId;
   const ProposalDetailScreen({Key? key, required this.proposalId})
     : super(key: key);
-
-  // Data loading method remains the same...
 
   @override
   Widget build(BuildContext context) {
@@ -195,38 +16,40 @@ class ProposalDetailScreen extends StatelessWidget {
     final propRef = FirebaseFirestore.instance
         .collection('proposals')
         .doc(proposalId);
-        
-  Future<Map<String, dynamic>> _loadProposalData() async {
-        final db = FirebaseFirestore.instance;
 
-        // 1️ Load the proposal
-        final propSnap = await db.collection('proposals').doc(proposalId).get();
-        if (!propSnap.exists) throw Exception('Proposal not found');
-        final proposal = propSnap.data()!;
+    Future<Map<String, dynamic>> _loadProposalData() async {
+      final db = FirebaseFirestore.instance;
 
-        // 2️ Load the job
-        final jobSnap = await db.collection('jobs').doc(proposal['jobId']).get();
-        if (!jobSnap.exists) throw Exception('Job not found');
-        final job = jobSnap.data()!;
+      // 1️ Load the proposal
+      final propSnap = await db.collection('proposals').doc(proposalId).get();
+      if (!propSnap.exists) throw Exception('Proposal not found');
+      final proposal = propSnap.data()!;
 
-        // 3️ Load the client (use `createdBy` from the job doc)
-        final clientSnap = await db.collection('users').doc(job['createdBy']).get();
-        if (!clientSnap.exists) throw Exception('Client not found');
-        final client = clientSnap.data()!;
+      // 2️ Load the job
+      final jobSnap = await db.collection('jobs').doc(proposal['jobId']).get();
+      if (!jobSnap.exists) throw Exception('Job not found');
+      final job = jobSnap.data()!;
 
-        // 4️ Load the freelancer
-        final freelancerSnap =
-            await db.collection('users').doc(proposal['freelancerId']).get();
-        if (!freelancerSnap.exists) throw Exception('Freelancer not found');
-        final freelancer = freelancerSnap.data()!;
+      // 3️ Load the client (use `createdBy` from the job doc)
+      final clientSnap =
+          await db.collection('users').doc(job['createdBy']).get();
+      if (!clientSnap.exists) throw Exception('Client not found');
+      final client = clientSnap.data()!;
 
-        return {
-          'proposal': proposal,
-          'job': job,
-          'client': client,
-          'freelancer': freelancer,
-        };
-      }
+      // 4️ Load the freelancer
+      final freelancerSnap =
+          await db.collection('users').doc(proposal['freelancerId']).get();
+      if (!freelancerSnap.exists) throw Exception('Freelancer not found');
+      final freelancer = freelancerSnap.data()!;
+
+      return {
+        'proposal': proposal,
+        'job': job,
+        'client': client,
+        'freelancer': freelancer,
+      };
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Proposal Details'),
@@ -373,57 +196,80 @@ class _AnimatedDetailContentState extends State<AnimatedDetailContent>
   }
 
   Widget _buildUserSection(String role, Map<String, dynamic> user) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+    return GestureDetector(
+       onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder:
+                (context) => FreelancerProfileScreen(
+                  freelancerId: widget.proposal['freelancerId'].toString(), // Ensure this is not null
+                ),
           ),
-        ],
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 28,
-            backgroundColor: Colors.blue.shade100,
-            child: Icon(Icons.person, size: 30, color: Colors.blue.shade600),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  role,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey.shade600,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  user['name'] ?? 'Unknown',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                Text(
-                  user['email'] ?? 'No email provided',
-                  style: TextStyle(color: Colors.grey.shade600),
-                ),
-              ],
+        );
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(15),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
-          ),
-        ],
+          ],
+        ),
+        child: Row(
+          children: [
+            // In the _buildUserSection method's CircleAvatar
+            CircleAvatar(
+              radius: 28,
+              backgroundColor: Colors.blue.shade100,
+              backgroundImage:
+                  user['photoUrl'] != null && user['photoUrl'].isNotEmpty
+                      ? NetworkImage(user['photoUrl'])
+                      : null,
+              child:
+                  (user['photoUrl'] == null || user['photoUrl'].isEmpty)
+                      ? Icon(Icons.person, size: 30, color: Colors.blue.shade600)
+                      : null,
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    role,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey.shade600,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    user['name'] ?? 'Unknown',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  Text(
+                    user['email'] ?? 'No email provided',
+                    style: TextStyle(color: Colors.grey.shade600),
+                  ),
+                ],
+              ),
+            ),
+            const Spacer(),
+            Icon(Icons.arrow_forward_ios_sharp, size: 25, color: Colors.blue.shade600),
+          ],
+        ),
       ),
     );
   }
@@ -611,7 +457,6 @@ class _LoadingIndicatorState extends State<LoadingIndicator>
     );
   }
 }
-
 
 class AnimatedButton extends StatefulWidget {
   final String label;

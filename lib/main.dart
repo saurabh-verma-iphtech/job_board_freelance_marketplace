@@ -19,7 +19,6 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:job_board_freelance_marketplace/Screens/Auth_Screen/login_screen.dart';
 import 'package:job_board_freelance_marketplace/Screens/Auth_Screen/signup_screen.dart';
 import 'package:job_board_freelance_marketplace/Services/theme_notifier.dart';
-import 'package:job_board_freelance_marketplace/firebase_options.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show Supabase;
 
 void main() async {

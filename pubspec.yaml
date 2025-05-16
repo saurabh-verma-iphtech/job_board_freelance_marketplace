@@ -47,6 +47,7 @@ dependencies:
   emoji_picker_flutter: ^4.3.0
   image_picker: ^1.1.2
   supabase_flutter: ^2.9.0
+  path: ^1.9.1
 
 dev_dependencies:
   flutter_test:

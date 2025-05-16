@@ -41,11 +41,6 @@ class _ChatDashboardState extends State<ChatDashboard>
 
     _fabController.forward();
 
-    // _chatsQuery = _firestore
-    //     .collection('chats')
-    //     .where('participants.$uid', isNotEqualTo: null)
-    //     .orderBy('timestamp', descending: true);
-
     final participantField =
         widget.userType == 'client' ? 'clientId' : 'freelancerId';
 
@@ -230,9 +225,9 @@ class __ChatListItemState extends State<_ChatListItem>
                   .get(),
           builder: (context, userSnapshot) {
             final userName = userSnapshot.data?.get('name') ?? 'Unknown User';
+            final userImage = (userSnapshot.data?.get('photoUrl')) ?? '';
             final lastMessage = widget.chatDoc.get('lastMessage') ?? '';
             final timestamp = widget.chatDoc.get('timestamp') as Timestamp?;
-            // final isRead = widget.chatDoc.get('read') ?? false;
 
             return Container(
               margin: const EdgeInsets.only(bottom: 12),
@@ -247,17 +242,27 @@ class __ChatListItemState extends State<_ChatListItem>
                     padding: const EdgeInsets.all(16),
                     child: Row(
                       children: [
+                        // inside your Row children
                         CircleAvatar(
                           radius: 24,
+                          backgroundImage:
+                              userImage.isNotEmpty
+                                  ? NetworkImage(userImage)
+                                  : null,
                           backgroundColor: colorScheme.primary.withOpacity(0.1),
-                          child: Text(
-                            userName.isNotEmpty ? userName[0] : '?',
-                            style: TextStyle(
-                              color: colorScheme.primary,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
+                          child:
+                              userImage.isEmpty
+                                  ? Text(
+                                    userName.isNotEmpty
+                                        ? userName[0].toUpperCase()
+                                        : '?',
+                                    style: TextStyle(
+                                      color: colorScheme.primary,
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  )
+                                  : null,
                         ),
                         const SizedBox(width: 16),
                         Expanded(
@@ -296,13 +301,11 @@ class __ChatListItemState extends State<_ChatListItem>
                                 overflow: TextOverflow.ellipsis,
                                 style: theme.textTheme.bodyMedium?.copyWith(
                                   color: colorScheme.onSurface.withOpacity(0.8),
-                                  
                                 ),
                               ),
                             ],
                           ),
                         ),
-      
                       ],
                     ),
                   ),

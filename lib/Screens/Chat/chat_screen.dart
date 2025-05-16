@@ -29,6 +29,10 @@ class _ChatScreenState extends State<ChatScreen>
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final ScrollController _scrollController = ScrollController();
   final _formKey = GlobalKey<FormState>();
+  String _otherUserImage = '';
+  String _otherUserName = '';
+  bool _loadingOtherUser = true;
+
 
   late CollectionReference _messagesCollection;
   late Query _messagesQuery;
@@ -50,11 +54,30 @@ class _ChatScreenState extends State<ChatScreen>
         .collection('messages');
     _messagesQuery = _messagesCollection.orderBy('timestamp', descending: true);
 
-     _focusNode.addListener(() {
+    _focusNode.addListener(() {
       if (_focusNode.hasFocus) {
         setState(() => _showEmojiPicker = false);
       }
     });
+
+     FirebaseFirestore.instance
+        .collection('users')
+        .doc(widget.otherUserId)
+        .get()
+        .then((snap) {
+          if (snap.exists) {
+            final data = snap.data()!;
+            setState(() {
+              _otherUserImage = (data['photoUrl'] as String?) ?? '';
+              _otherUserName =
+                  (data['name'] as String?) ?? widget.otherUserName;
+              _loadingOtherUser = false;
+            });
+          } else {
+            setState(() => _loadingOtherUser = false);
+          }
+        })
+        .catchError((_) => setState(() => _loadingOtherUser = false));
   }
 
   @override
@@ -167,22 +190,42 @@ class _ChatScreenState extends State<ChatScreen>
 
     return Scaffold(
       appBar: AppBar(
+        titleSpacing: 0,
         title:
             _selectionMode
                 ? Text('${_selectedMessageIds.length} selected')
                 : Row(
                   children: [
-                    CircleAvatar(
-                      backgroundColor: colorScheme.primary.withOpacity(0.2),
-                      child: Text(
-                        widget.otherUserName.isNotEmpty
-                            ? widget.otherUserName[0].toUpperCase()
-                            : '?',
-                        style: TextStyle(color: colorScheme.primary),
+                    if (_loadingOtherUser)
+                      const SizedBox(
+                        width: 48,
+                        height: 48,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    else
+                      CircleAvatar(
+                        radius: 20,
+                        backgroundColor: colorScheme.primary.withOpacity(0.1),
+                        backgroundImage:
+                            _otherUserImage.isNotEmpty
+                                ? NetworkImage(_otherUserImage)
+                                : null,
+                        child:
+                            _otherUserImage.isEmpty
+                                ? Text(
+                                  _otherUserName.isNotEmpty
+                                      ? _otherUserName[0].toUpperCase()
+                                      : '?',
+                                  style: TextStyle(
+                                    color: colorScheme.primary,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                )
+                                : null,
                       ),
-                    ),
                     const SizedBox(width: 12),
-                    Text(widget.otherUserName),
+                    Text(_otherUserName),
                   ],
                 ),
         actions: [
@@ -341,15 +384,24 @@ class _ChatScreenState extends State<ChatScreen>
             isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
         children: [
           if (!isMe)
-            CircleAvatar(
+          CircleAvatar(
               radius: 16,
-              backgroundColor: colorScheme.primary.withOpacity(0.2),
-              child: Text(
-                widget.otherUserName.isNotEmpty
-                    ? widget.otherUserName[0].toUpperCase()
-                    : '?',
-                style: TextStyle(color: colorScheme.primary),
-              ),
+              backgroundColor: colorScheme.primary.withOpacity(0.1),
+              backgroundImage:
+                  _otherUserImage.isNotEmpty
+                      ? NetworkImage(_otherUserImage)
+                      : null,
+              child:
+                  _otherUserImage.isEmpty
+                      ? Text(
+                        _otherUserName.isNotEmpty
+                            ? _otherUserName[0].toUpperCase()
+                            : '?',
+                        style: TextStyle(
+                          color: colorScheme.primary,   
+                        ),
+                      )
+                      : null,
             ),
           Flexible(
             child: Container(
