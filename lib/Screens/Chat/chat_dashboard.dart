@@ -224,9 +224,25 @@ class __ChatListItemState extends State<_ChatListItem>
                   .doc(widget.otherUserId)
                   .get(),
           builder: (context, userSnapshot) {
-            final userName = userSnapshot.data?.get('name') ?? 'Unknown User';
-            final userImage = (userSnapshot.data?.get('photoUrl')) ?? '';
-            final lastMessage = widget.chatDoc.get('lastMessage') ?? '';
+            if (userSnapshot.connectionState == ConnectionState.waiting) {
+              return _buildShimmerLoader();
+            }
+
+            // 2) Did we get a document?
+            if (!userSnapshot.hasData ||
+                !(userSnapshot.data?.exists ?? false)) {
+              // You can return a placeholder tile, or simply skip rendering:
+              return _buildMissingUserTile();
+            }
+
+            // 3) Now it’s safe to read
+            final data = userSnapshot.data!.data() as Map<String, dynamic>?;
+
+            final userName = (data?['name'] as String?) ?? 'Unknown User';
+            final userImage = (data?['photoUrl'] as String?) ?? '';
+
+            final lastMessage =
+            widget.chatDoc.get('lastMessage') as String? ?? '';
             final timestamp = widget.chatDoc.get('timestamp') as Timestamp?;
 
             return Container(
@@ -336,4 +352,36 @@ class __ChatListItemState extends State<_ChatListItem>
       ),
     );
   }
+
+  Widget _buildMissingUserTile() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Material(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        elevation: 2,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Text(
+            'User not found',
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: Colors.grey),
+          ),
+        ),
+      ),
+    );
+  }
+    Widget _buildShimmerLoader() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      height: 10,
+      decoration: BoxDecoration(
+        color: Colors.grey.shade200,
+        borderRadius: BorderRadius.circular(16),
+      ),
+    );
+  }
+
+
 }

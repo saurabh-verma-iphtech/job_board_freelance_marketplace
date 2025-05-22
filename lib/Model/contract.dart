@@ -6,9 +6,11 @@ class Contract {
   final String clientId;
   final String freelancerId;
   final double agreedBid;
-  late final String status; // 'ongoing' | 'completed'
+  late final String status;
   final DateTime startedAt;
   final DateTime? completedAt;
+    final String? paymentId;
+  final DateTime? paymentDate;
 
   Contract({
     required this.id,
@@ -18,6 +20,8 @@ class Contract {
     required this.agreedBid,
     required this.status,
     required this.startedAt,
+      this.paymentId,
+    this.paymentDate,
     this.completedAt,
   });
 
@@ -31,6 +35,9 @@ class Contract {
       agreedBid: (data['agreedBid'] as num).toDouble(),
       status: data['status'],
       startedAt: (data['startedAt'] as Timestamp).toDate(),
+            paymentId: data['paymentId'],
+      paymentDate: (data['paymentDate'] as Timestamp?)?.toDate(),
+
       completedAt:
           data['completedAt'] != null
               ? (data['completedAt'] as Timestamp).toDate()

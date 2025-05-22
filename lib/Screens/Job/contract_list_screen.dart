@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
+import 'package:job_board_freelance_marketplace/Payment/payment_screen.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:job_board_freelance_marketplace/Model/contract.dart';
 import 'package:job_board_freelance_marketplace/Screens/Job/contract_detail_screen.dart';
@@ -20,16 +21,15 @@ class ContractsListScreen extends StatelessWidget {
       length: 2,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('My Contracts',
-              style: TextStyle(fontWeight: FontWeight.bold)),
+          title: const Text(
+            'My Contracts',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
           bottom: TabBar(
             indicatorColor: theme.primaryColor,
             labelColor: theme.primaryColor,
             unselectedLabelColor: Colors.grey,
-            tabs: const [
-              Tab(text: '🟢 Ongoing'),
-              Tab(text: '✅ Completed'),
-            ],
+            tabs: const [Tab(text: '🟢 Ongoing'), Tab(text: '✅ Completed')],
           ),
           elevation: 4,
           shadowColor: Colors.black.withOpacity(0.1),
@@ -57,15 +57,22 @@ class ContractsListScreen extends StatelessWidget {
   }
 
   Query<Map<String, dynamic>> _buildQuery(String uid, String status) {
-    final userField = role.toLowerCase() == 'client' ? 'clientId' : 'freelancerId';
+    final userField =
+        role.toLowerCase() == 'client' ? 'clientId' : 'freelancerId';
     return FirebaseFirestore.instance
         .collection('contracts')
         .where(userField, isEqualTo: uid)
         .where('status', isEqualTo: status)
-        .orderBy('startedAt', descending: true);
+        .orderBy(
+          status == 'ongoing' ? 'startedAt' : 'completedAt',
+          descending: true,
+        );
   }
 
-  Widget _buildContractList(Query<Map<String, dynamic>> query, ThemeData theme) {
+  Widget _buildContractList(
+    Query<Map<String, dynamic>> query,
+    ThemeData theme,
+  ) {
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
       stream: query.snapshots(),
       builder: (context, snap) {
@@ -100,7 +107,9 @@ class ContractsListScreen extends StatelessWidget {
                       contract: contract,
                       theme: theme,
                       role: role,
-                      onMarkCompleted: (id) => _markContractAsCompleted(context, id),
+                      onMarkCompleted:
+                          (id, paymentId) =>
+                              _markContractAsCompleted(context, id, paymentId),
                     ),
                   ),
                 ),
@@ -112,21 +121,33 @@ class ContractsListScreen extends StatelessWidget {
     );
   }
 
-  Future<void> _markContractAsCompleted(BuildContext context, String contractId) async {
+  // In ContractsListScreen, modify _markContractAsCompleted
+  Future<void> _markContractAsCompleted(
+    BuildContext context,
+    String contractId,
+    String paymentId, // Add payment ID parameter
+  ) async {
     try {
-      await FirebaseFirestore.instance
+      final contractRef = FirebaseFirestore.instance
           .collection('contracts')
-          .doc(contractId)
-          .update({'status': 'completed', 'completedAt': Timestamp.now()});
+          .doc(contractId);
+
+      await FirebaseFirestore.instance.runTransaction((transaction) async {
+        final snapshot = await transaction.get(contractRef);
+        if (!snapshot.exists) throw Exception("Contract not found");
+
+        transaction.update(contractRef, {
+          'status': 'completed',
+          'completedAt': Timestamp.now(),
+          'paymentId': paymentId, // Add payment ID
+          'paymentDate': Timestamp.now(),
+        });
+      });
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Contract marked as completed!'),
+          content: const Text('Contract completed & payment recorded!'),
           backgroundColor: Colors.green.shade800,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
         ),
       );
     } catch (e) {
@@ -144,7 +165,8 @@ class _ContractCard extends StatelessWidget {
   final Contract contract;
   final ThemeData theme;
   final String role;
-  final Function(String) onMarkCompleted;
+final Function(String, String)
+  onMarkCompleted; // Accepts contractId + paymentId
 
   const _ContractCard({
     required this.contract,
@@ -156,7 +178,11 @@ class _ContractCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<DocumentSnapshot>(
-      future: FirebaseFirestore.instance.collection('jobs').doc(contract.jobId).get(),
+      future:
+          FirebaseFirestore.instance
+              .collection('jobs')
+              .doc(contract.jobId)
+              .get(),
       builder: (context, jobSnap) {
         final jobData = jobSnap.data?.data() as Map<String, dynamic>?;
         final title = jobData?['title'] ?? 'Untitled Job';
@@ -169,12 +195,17 @@ class _ContractCard extends StatelessWidget {
           ),
           child: InkWell(
             borderRadius: BorderRadius.circular(16),
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => ContractDetailScreen(contract: contract, role: role),
-              ),
-            ),
+            onTap:
+                () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder:
+                        (_) => ContractDetailScreen(
+                          contract: contract,
+                          role: role,
+                        ),
+                  ),
+                ),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -205,21 +236,21 @@ class _ContractCard extends StatelessWidget {
                     color: Colors.green,
                   ),
                   const SizedBox(height: 8),
-                  if (contract.status == 'ongoing' && role.toLowerCase() == 'client')
+                  if (contract.status == 'ongoing' &&
+                      role.toLowerCase() == 'client')
                     Align(
                       alignment: Alignment.bottomRight,
                       child: ElevatedButton.icon(
-                         onPressed: () => _showConfirmationDialog(context),
+                        onPressed: () => _navigateToPayment(context),
                         icon: const Icon(Icons.check_circle, size: 18),
-                        label: const Text('Mark Completed'),
+                        label: const Text('Mark Completed & Pay'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.blueAccent,
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
-                       
-                      ),
                       ),
                     ),
                 ],
@@ -231,30 +262,70 @@ class _ContractCard extends StatelessWidget {
     );
   }
 
-  void _showConfirmationDialog(BuildContext context) {
+  void _navigateToPayment(BuildContext context) {
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Confirm Completion'),
-        content: const Text('Are you sure this contract is completed?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+      builder:
+          (ctx) => AlertDialog(
+            title: const Text('Confirm Completion'),
+            content: const Text('Mark as completed and proceed to payment?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder:
+                          (_) => RazorPayPage(
+                            contractId: contract.id,
+                            amount: contract.agreedBid,
+                            userId: FirebaseAuth.instance.currentUser!.uid,
+                            onSuccess:
+                                (paymentId) =>
+                                    onMarkCompleted(contract.id, paymentId),
+                          ),
+                    ),
+                  );
+                },
+                child: const Text('Confirm'),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              onMarkCompleted(contract.id);
-            },
-            child: const Text('Confirm',
-                style: TextStyle(color: Colors.green)),
-          ),
-        ],
-      ),
     );
   }
 }
+
+// void _showConfirmationDialog(BuildContext context) {
+//   showDialog(
+//     context: context,
+//     builder:
+//         (ctx) => AlertDialog(
+//           title: const Text('Confirm Completion'),
+//           content: const Text('Are you sure this contract is completed?'),
+//           actions: [
+//             TextButton(
+//               onPressed: () => Navigator.pop(ctx),
+//               child: const Text('Cancel'),
+//             ),
+//             TextButton(
+//               onPressed: () {
+//                 Navigator.pop(ctx);
+//                 onMarkCompleted(contract.id);
+//               },
+//               child: const Text(
+//                 'Confirm',
+//                 style: TextStyle(color: Colors.green),
+//               ),
+//             ),
+//           ],
+//         ),
+//   );
+// }
 
 class _StatusChip extends StatelessWidget {
   final String status;
@@ -317,10 +388,7 @@ class _InfoRow extends StatelessWidget {
         const SizedBox(width: 8),
         Text(
           '$label: ',
-          style: TextStyle(
-            color: Colors.grey.shade600,
-            fontSize: 14,
-          ),
+          style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
         ),
         Text(
           value,
@@ -344,14 +412,15 @@ class _ShimmerLoader extends StatelessWidget {
       child: ListView.builder(
         padding: const EdgeInsets.all(16),
         itemCount: 5,
-        itemBuilder: (_, index) => Container(
-          height: 120,
-          margin: const EdgeInsets.only(bottom: 16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-          ),
-        ),
+        itemBuilder:
+            (_, index) => Container(
+              height: 120,
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
       ),
     );
   }
@@ -368,8 +437,11 @@ class _EmptyState extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.assignment_outlined,
-              size: 80, color: theme.primaryColor.withOpacity(0.3)),
+          Icon(
+            Icons.assignment_outlined,
+            size: 80,
+            color: theme.primaryColor.withOpacity(0.3),
+          ),
           const SizedBox(height: 16),
           Text(
             'No Contracts Found',
@@ -403,17 +475,18 @@ class _ErrorWidget extends StatelessWidget {
         children: [
           const Icon(Icons.error_outline, size: 48, color: Colors.red),
           const SizedBox(height: 16),
-          const Text('Failed to load contracts',
-              style: TextStyle(fontSize: 16)),
-          const SizedBox(height: 8),
-          Text(error,
-              style: const TextStyle(color: Colors.grey),
-              textAlign: TextAlign.center),
-          const SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: () {},
-            child: const Text('Try Again'),
+          const Text(
+            'Failed to load contracts',
+            style: TextStyle(fontSize: 16),
           ),
+          const SizedBox(height: 8),
+          Text(
+            error,
+            style: const TextStyle(color: Colors.grey),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton(onPressed: () {}, child: const Text('Try Again')),
         ],
       ),
     );

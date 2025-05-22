@@ -105,7 +105,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen>
         title: const Text('Create Account'),
         centerTitle: true,
         elevation: 0,
-        backgroundColor: Colors.transparent,
+        backgroundColor: Colors.blue.shade50,
         actions: [
           IconButton(
             icon: AnimatedSwitcher(
@@ -123,6 +123,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen>
         animation: _controller,
         builder: (context, child) {
           return Container(
+            height: double.infinity,
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
@@ -155,9 +156,10 @@ class _SignupScreenState extends ConsumerState<SignupScreen>
                             decoration: BoxDecoration(
                               image: DecorationImage(
                                 image: AssetImage(
-                                  isDark
-                                      ? 'assets/images/signupN.png'
-                                      : 'assets/images/signupL.png',
+                                  // isDark
+                                  //     ? 'assets/images/signupN.png'
+                                  //     : 'assets/images/signupL.png',
+                                  'assets/images/s.png'
                                 ),
                                 fit: BoxFit.cover,
                               ),

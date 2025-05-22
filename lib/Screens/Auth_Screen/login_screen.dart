@@ -157,44 +157,50 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     bool _loading = false;
 
     Future<void> _submit() async {
-      if (!_formKey.currentState!.validate()) return;
-      setState(() => _loading = true);
+    if (!_formKey.currentState!.validate()) return;
 
-      try {
-        // 1️⃣ Sign in
-        final cred = await _authService.signIn(_email, _password);
-        final uid = cred.user!.uid;
+    if (!mounted) return;
+    setState(() => _loading = true);
 
-        // 2️⃣ Fetch the user's role from Firestore
-        final doc =
-            await FirebaseFirestore.instance.collection('users').doc(uid).get();
+    try {
+      final cred = await _authService.signIn(_email, _password);
+      final uid = cred.user!.uid;
 
-        if (!doc.exists || doc.data()!['role'] == null) {
-          throw FirebaseAuthException(
-            code: 'no-role',
-            message: 'User role not found. Please complete your profile.',
-          );
-        }
+      final doc =
+          await FirebaseFirestore.instance.collection('users').doc(uid).get();
 
-        final role = doc.data()!['role'] as String;
+      if (!doc.exists || doc.data()!['role'] == null) {
+        throw FirebaseAuthException(
+          code: 'no-role',
+          message: 'User role not found. Please complete your profile.',
+        );
+      }
 
-        // 3️⃣ Navigate based on role
-        final route =
-            (role == 'Client') ? '/client-dashboard' : '/freelancer-dashboard';
+      final role = doc.data()!['role'] as String;
+      final route =
+          (role == 'Client') ? '/client-dashboard' : '/freelancer-dashboard';
 
-        Navigator.pushReplacementNamed(context, route);
-      } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+      Navigator.pushReplacementNamed(context, route);
+    } on FirebaseAuthException catch (e) {
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(e.message ?? 'Login failed')));
-      } catch (e) {
+      }
+    } catch (e) {
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
-      } finally {
+      }
+    } finally {
+      if (mounted) {
         setState(() => _loading = false);
       }
     }
+  }
+
 
   late AnimationController _controller;
   late Animation<double> _opacityAnimation;
@@ -252,7 +258,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         title: const Text('Login'),
         centerTitle: true,
         elevation: 0,
-        backgroundColor: Colors.transparent,
+        backgroundColor: Colors.blue.shade50,
         actions: [
           IconButton(
             icon: AnimatedSwitcher(
@@ -272,6 +278,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         animation: _controller,
         builder: (context, child) {
           return Container(
+            height: double.infinity,
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
@@ -304,9 +311,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                             decoration: BoxDecoration(
                               image: DecorationImage(
                                 image: AssetImage(
-                                  isDark
-                                      ? 'assets/images/loginN.png'
-                                      : 'assets/images/loginD.png',
+                                  // isDark
+                                  //     ? 'assets/images/loginN.png'
+                                  //     : 'assets/images/loginD.png',
+                                  "assets/images/L.png"
                                 ),
                                 fit: BoxFit.cover,
                               ),

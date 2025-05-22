@@ -48,6 +48,7 @@ dependencies:
   image_picker: ^1.1.2
   supabase_flutter: ^2.9.0
   path: ^1.9.1
+  razorpay_flutter: ^1.4.0
 
 dev_dependencies:
   flutter_test:
@@ -80,6 +81,8 @@ flutter:
     - assets/images/loginD.png
     - assets/images/loginN.png
     - assets/images/avatar.png
+    - assets/images/s.png
+    - assets/images/L.png
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see
