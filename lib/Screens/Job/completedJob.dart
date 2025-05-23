@@ -143,6 +143,8 @@ class _CompletedJobsScreenState extends State<CompletedJobsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final groupedContracts = _groupContractsByDate();
 
     // Full-screen loading while initializing
@@ -168,50 +170,95 @@ class _CompletedJobsScreenState extends State<CompletedJobsScreen> {
     // No completed jobs found
     if (_allContracts.isEmpty) {
       return Scaffold(
-        appBar: AppBar(title: Text('Completed Jobs')),
-        body: const Center(child: Text('No completed jobs found')),
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          flexibleSpace: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [colorScheme.primary, colorScheme.surface],
+              ),
+            ),
+          ),
+          title: Text('Completed Jobs')),
+        body: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                colorScheme.primary.withOpacity(0.1),
+                colorScheme.background,
+              ],
+            ),
+          ),
+          child: const Center(child: Text('No completed jobs found'))),
       );
     }
 
     // Render list of completed jobs
     return Scaffold(
-      appBar: AppBar(title: const Text('Completed Jobs')),
-      body: AnimationLimiter(
-        child: ListView.builder(
-          controller: _scrollController,
-          padding: const EdgeInsets.all(16),
-          itemCount: groupedContracts.length * 2 + (_hasMore ? 1 : 0),
-          itemBuilder: (context, index) {
-            if (index == groupedContracts.length * 2 && _hasMore) {
-              return _buildLoadingIndicator();
-            }
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [colorScheme.primary, colorScheme.surface],
+            ),
+          ),
+        ),
+        title: const Text('Completed Jobs')),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              colorScheme.primary.withOpacity(0.1),
+              colorScheme.background,
+            ],
+          ),
+        ),
+        child: AnimationLimiter(
+          child: ListView.builder(
+            controller: _scrollController,
+            padding: const EdgeInsets.all(16),
+            itemCount: groupedContracts.length * 2 + (_hasMore ? 1 : 0),
+            itemBuilder: (context, index) {
+              if (index == groupedContracts.length * 2 && _hasMore) {
+                return _buildLoadingIndicator();
+              }
 
-            if (index.isOdd) {
+              if (index.isOdd) {
+                final groupIndex = index ~/ 2;
+                final groupKey = groupedContracts.keys.elementAt(groupIndex);
+                return _buildDateHeader(groupKey);
+              }
+
               final groupIndex = index ~/ 2;
               final groupKey = groupedContracts.keys.elementAt(groupIndex);
-              return _buildDateHeader(groupKey);
-            }
+              final contracts = groupedContracts[groupKey]!;
 
-            final groupIndex = index ~/ 2;
-            final groupKey = groupedContracts.keys.elementAt(groupIndex);
-            final contracts = groupedContracts[groupKey]!;
-
-            return AnimationConfiguration.staggeredList(
-              position: groupIndex,
-              duration: const Duration(milliseconds: 500),
-              child: SlideAnimation(
-                verticalOffset: 50.0,
-                child: FadeInAnimation(
-                  child: Column(
-                    children:
-                        contracts
-                            .map((doc) => _buildContractCard(context, doc))
-                            .toList(),
+              return AnimationConfiguration.staggeredList(
+                position: groupIndex,
+                duration: const Duration(milliseconds: 500),
+                child: SlideAnimation(
+                  verticalOffset: 50.0,
+                  child: FadeInAnimation(
+                    child: Column(
+                      children:
+                          contracts
+                              .map((doc) => _buildContractCard(context, doc))
+                              .toList(),
+                    ),
                   ),
                 ),
-              ),
-            );
-          },
+              );
+            },
+          ),
         ),
       ),
     );

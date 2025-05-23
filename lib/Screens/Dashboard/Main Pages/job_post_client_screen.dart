@@ -11,9 +11,15 @@ class PostJobScreen extends ConsumerStatefulWidget {
   _PostJobScreenState createState() => _PostJobScreenState();
 }
 
-class _PostJobScreenState extends ConsumerState<PostJobScreen> with SingleTickerProviderStateMixin {
+class _PostJobScreenState extends ConsumerState<PostJobScreen>
+    with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
-  final List<String> categories = ['Design', 'Development', 'Writing', 'Marketing'];
+  final List<String> categories = [
+    'Design',
+    'Development',
+    'Writing',
+    'Marketing',
+  ];
   String _title = '', _description = '', _category = 'Design';
   double _budget = 0;
   bool _saving = false;
@@ -26,7 +32,7 @@ class _PostJobScreenState extends ConsumerState<PostJobScreen> with SingleTicker
   @override
   void initState() {
     super.initState();
-    
+
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 800),
@@ -36,7 +42,7 @@ class _PostJobScreenState extends ConsumerState<PostJobScreen> with SingleTicker
       CurvedAnimation(
         parent: _controller,
         curve: const Interval(0.0, 0.5, curve: Curves.easeIn),
-    )
+      ),
     );
 
     _slideAnimation = Tween<Offset>(
@@ -46,14 +52,11 @@ class _PostJobScreenState extends ConsumerState<PostJobScreen> with SingleTicker
       CurvedAnimation(
         parent: _controller,
         curve: const Interval(0.5, 1.0, curve: Curves.easeOut),
-    )
+      ),
     );
 
     _scaleAnimation = Tween<double>(begin: 0.95, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: Curves.fastOutSlowIn,
-      ),
+      CurvedAnimation(parent: _controller, curve: Curves.fastOutSlowIn),
     );
 
     _controller.forward();
@@ -88,7 +91,8 @@ class _PostJobScreenState extends ConsumerState<PostJobScreen> with SingleTicker
           content: Text('Error posting job: $e'),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10)),
+            borderRadius: BorderRadius.circular(10),
+          ),
         ),
       );
     } finally {
@@ -99,6 +103,7 @@ class _PostJobScreenState extends ConsumerState<PostJobScreen> with SingleTicker
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final themeNotifier = ref.watch(themeNotifierProvider);
     final isDark = themeNotifier.mode == ThemeMode.dark;
 
@@ -106,8 +111,16 @@ class _PostJobScreenState extends ConsumerState<PostJobScreen> with SingleTicker
       appBar: AppBar(
         title: const Text('Post a Job'),
         centerTitle: true,
-        elevation: 0,
         backgroundColor: Colors.transparent,
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [colorScheme.primary, colorScheme.surface],
+            ),
+          ),
+        ),
       ),
       body: AnimatedBuilder(
         animation: _controller,
@@ -117,9 +130,13 @@ class _PostJobScreenState extends ConsumerState<PostJobScreen> with SingleTicker
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: isDark
-                    ? [Colors.deepPurple.shade900, Colors.indigo.shade900]
-                    : [Colors.blue.shade50, Colors.purple.shade50],
+                colors:
+                    isDark
+                        ? [Colors.deepPurple.shade900, Colors.indigo.shade900]
+                        : [
+                colorScheme.primary.withOpacity(0.1),
+                colorScheme.background,
+              ],
               ),
             ),
             child: ScaleTransition(
@@ -133,7 +150,8 @@ class _PostJobScreenState extends ConsumerState<PostJobScreen> with SingleTicker
                     child: Card(
                       elevation: 8,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20)),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
                       child: Padding(
                         padding: const EdgeInsets.all(20.0),
                         child: Form(
@@ -144,14 +162,17 @@ class _PostJobScreenState extends ConsumerState<PostJobScreen> with SingleTicker
                                 icon: Icons.title,
                                 label: 'Job Title',
                                 onChanged: (v) => _title = v,
-                                validator: (v) => v!.isEmpty ? 'Required' : null,
+                                validator:
+                                    (v) => v!.isEmpty ? 'Required' : null,
                               ),
                               const SizedBox(height: 20),
                               _buildFormField(
                                 icon: Icons.description,
                                 label: 'Description',
                                 onChanged: (v) => _description = v,
-                                validator: (v) => v!.length < 10 ? 'Min 10 chars' : null,
+                                validator:
+                                    (v) =>
+                                        v!.length < 10 ? 'Min 10 chars' : null,
                                 maxLines: 5,
                               ),
                               const SizedBox(height: 20),
@@ -160,10 +181,13 @@ class _PostJobScreenState extends ConsumerState<PostJobScreen> with SingleTicker
                                 label: 'Budget (USD)',
                                 prefixText: '\$ ',
                                 keyboardType: TextInputType.number,
-                                onChanged: (v) => _budget = double.tryParse(v) ?? 0,
-                                validator: (v) => (double.tryParse(v!) ?? 0) > 0
-                                    ? null
-                                    : 'Enter valid amount',
+                                onChanged:
+                                    (v) => _budget = double.tryParse(v) ?? 0,
+                                validator:
+                                    (v) =>
+                                        (double.tryParse(v!) ?? 0) > 0
+                                            ? null
+                                            : 'Enter valid amount',
                               ),
                               const SizedBox(height: 20),
                               InputDecorator(
@@ -171,21 +195,26 @@ class _PostJobScreenState extends ConsumerState<PostJobScreen> with SingleTicker
                                   labelText: 'Category',
                                   prefixIcon: const Icon(Icons.category),
                                   border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(15)),
+                                    borderRadius: BorderRadius.circular(15),
+                                  ),
                                 ),
                                 child: DropdownButtonHideUnderline(
                                   child: DropdownButton<String>(
                                     value: _category,
                                     isExpanded: true,
                                     icon: const Icon(Icons.arrow_drop_down),
-                                    items: categories.map((String value) {
-                                      return DropdownMenuItem<String>(
-                                        value: value,
-                                        child: Text(value,
-                                            style: theme.textTheme.bodyLarge),
-                                      );
-                                    }).toList(),
-                                    onChanged: (v) => setState(() => _category = v!),
+                                    items:
+                                        categories.map((String value) {
+                                          return DropdownMenuItem<String>(
+                                            value: value,
+                                            child: Text(
+                                              value,
+                                              style: theme.textTheme.bodyLarge,
+                                            ),
+                                          );
+                                        }).toList(),
+                                    onChanged:
+                                        (v) => setState(() => _category = v!),
                                   ),
                                 ),
                               ),
@@ -209,18 +238,19 @@ class _PostJobScreenState extends ConsumerState<PostJobScreen> with SingleTicker
                                       ),
                                     ),
                                     child: Center(
-                                      child: _saving
-                                          ? const CircularProgressIndicator(
-                                              color: Colors.white,
-                                            )
-                                          : const Text(
-                                              'Post Job',
-                                              style: TextStyle(
+                                      child:
+                                          _saving
+                                              ? const CircularProgressIndicator(
                                                 color: Colors.white,
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.bold,
+                                              )
+                                              : const Text(
+                                                'Post Job',
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
                                               ),
-                                            ),
                                     ),
                                   ),
                                 ),
@@ -254,8 +284,7 @@ class _PostJobScreenState extends ConsumerState<PostJobScreen> with SingleTicker
         labelText: label,
         prefixIcon: Icon(icon),
         prefixText: prefixText,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(15)),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
         floatingLabelStyle: TextStyle(color: Theme.of(context).primaryColor),
       ),
       keyboardType: keyboardType,

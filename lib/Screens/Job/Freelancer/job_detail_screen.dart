@@ -62,8 +62,16 @@ class JobDetailScreen extends ConsumerWidget {
               return Scaffold(
                 appBar: AppBar(
                   title: const Text('Job & Client Details'),
-                  backgroundColor: theme.scaffoldBackgroundColor,
-                  elevation: 0,
+                  backgroundColor: Colors.transparent,
+                  flexibleSpace: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [colorScheme.primary, colorScheme.surface],
+                      ),
+                    ),
+                  ),
                 ),
                 body: Container(
                   decoration: BoxDecoration(

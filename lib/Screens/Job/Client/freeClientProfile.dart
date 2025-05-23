@@ -1,206 +1,3 @@
-// // freelancer_profile_screen.dart
-// import 'package:flutter/material.dart';
-// import 'package:cloud_firestore/cloud_firestore.dart';
-
-// class FreelancerProfileScreen extends StatelessWidget {
-//   final String freelancerId;
-//   const FreelancerProfileScreen({super.key, required this.freelancerId});
-
-//   @override
-//   Widget build(BuildContext context) {
-//     // Add validation for freelancerId
-//     if (freelancerId.isEmpty) {
-//       return Scaffold(
-//         appBar: AppBar(title: const Text('Error')),
-//         body: const Center(child: Text('Invalid freelancer ID')),
-//       );
-//     }
-
-//     return Scaffold(
-//       appBar: AppBar(
-//         title: const Text('Freelancer Profile'),
-//         centerTitle: true,
-//         elevation: 0,
-//       ),
-//       body: FutureBuilder<DocumentSnapshot>(
-//         future:
-//             FirebaseFirestore.instance
-//                 .collection('users')
-//                 .doc(freelancerId)
-//                 .get(),
-//         builder: (context, snapshot) {
-//           if (snapshot.connectionState == ConnectionState.waiting) {
-//             return const Center(child: CircularProgressIndicator());
-//           }
-
-//           if (snapshot.hasError) {
-//             return Center(child: Text('Error: ${snapshot.error}'));
-//           }
-
-//           if (!snapshot.hasData || !snapshot.data!.exists) {
-//             return const Center(child: Text('Freelancer not found'));
-//           }
-
-//           final user = snapshot.data!.data() as Map<String, dynamic>;
-
-//           return SingleChildScrollView(
-//             padding: const EdgeInsets.all(20),
-//             child: Column(
-//               children: [
-//                 _buildProfileHeader(user),
-//                 const SizedBox(height: 30),
-//                 if ((user['bio'] as String?)?.isNotEmpty ?? false) ...[
-//                   _buildSectionTitle('About Me'),
-//                   _buildBioSection(user),
-//                   const SizedBox(height: 25),
-//                 ],
-//                 if ((user['skills'] as List?)?.isNotEmpty ?? false) ...[
-//                   _buildSectionTitle('Skills'),
-//                   _buildSkillsSection(user),
-//                   const SizedBox(height: 25),
-//                 ],
-//               ],
-//             ),
-//           );
-//         },
-//       ),
-//     );
-//   }
-
-
-//   Widget _buildProfileHeader(Map<String, dynamic> user) {
-//     return Column(
-//       children: [
-//         CircleAvatar(
-//           radius: 50,
-//           backgroundImage:
-//               (user['photoUrl'] as String?)?.isNotEmpty ?? false
-//                   ? NetworkImage(user['photoUrl'] as String)
-//                   : null,
-//           child:
-//               (user['photoUrl'] as String?)?.isEmpty ?? true
-//                   ? const Icon(Icons.person, size: 50)
-//                   : null,
-//         ),
-//         const SizedBox(height: 20),
-//         Text(
-//           user['name']?.toString() ?? 'No Name',
-//           style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-//         ),
-//         const SizedBox(height: 8),
-//         Text(
-//           user['role']?.toString() ?? 'Freelancer',
-//           style: TextStyle(fontSize: 18, color: Colors.grey.shade600),
-//         ),
-//       ],
-//     );
-//   }
-
-//   Widget _buildSectionTitle(String title) {
-//     return Row(
-//       children: [
-//         Text(
-//           title,
-//           style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
-//         ),
-//         const SizedBox(width: 10),
-//         Container(height: 1, width: 30, color: Colors.blue),
-//       ],
-//     );
-//   }
-
-//   Widget _buildBioSection(Map<String, dynamic> user) {
-//     return Card(
-//       elevation: 2,
-//       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-//       child: Padding(
-//         padding: const EdgeInsets.all(20),
-//         child: Text(
-//           user['bio']?.toString() ?? 'No bio available',
-//           style: TextStyle(
-//             fontSize: 16,
-//             height: 1.5,
-//             color: Colors.grey.shade700,
-//           ),
-//         ),
-//       ),
-//     );
-//   }
-
-//   Widget _buildSkillsSection(Map<String, dynamic> user) {
-//     final skills = List<String>.from(user['skills'] ?? []);
-//     if (skills.isEmpty) {
-//       return const Text('No skills listed');
-//     }
-//     return Wrap(
-//       spacing: 10,
-//       runSpacing: 10,
-//       children:
-//           skills
-//               .map(
-//                 (skill) => Chip(
-//                   label: Text(skill.toString()),
-//                   backgroundColor: Colors.blue.shade50,
-//                   shape: RoundedRectangleBorder(
-//                     borderRadius: BorderRadius.circular(8),
-//                   ),
-//                 ),
-//               )
-//               .toList(),
-//     );
-//   }
-
-//   Widget _buildExperienceSection(Map<String, dynamic> user) {
-//     final experience = user['experience']?.toString() ?? '';
-
-//     if (experience.isEmpty) {
-//       return const Text('No experience listed');
-//     }
-
-//     return Card(
-//       elevation: 2,
-//       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-//       child: Padding(
-//         padding: const EdgeInsets.all(20),
-//         child: Text(
-//           experience,
-//           style: TextStyle(
-//             fontSize: 16,
-//             height: 1.5,
-//             color: Colors.grey.shade700,
-//           ),
-//         ),
-//       ),
-//     );
-//   }
-
-//   Widget _buildEducationSection(Map<String, dynamic> user) {
-//     final education = user['education']?.toString() ?? '';
-
-//     if (education.isEmpty) {
-//       return const Text('No education listed');
-//     }
-
-//     return Card(
-//       elevation: 2,
-//       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-//       child: Padding(
-//         padding: const EdgeInsets.all(20),
-//         child: Text(
-//           education,
-//           style: TextStyle(
-//             fontSize: 16,
-//             height: 1.5,
-//             color: Colors.grey.shade700,
-//           ),
-//         ),
-//       ),
-//     );
-//   }
-// }
-
-
-// freelancer_profile_screen.dart
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -210,6 +7,8 @@ class FreelancerProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     // Add validation for freelancerId
     if (freelancerId.isEmpty) {
       return Scaffold(
@@ -218,90 +17,108 @@ class FreelancerProfileScreen extends StatelessWidget {
       );
     }
 
-    
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Freelancer Profile'),
         centerTitle: true,
-        elevation: 0,
-      ),
-      body: FutureBuilder<DocumentSnapshot>(
-        future:
-            FirebaseFirestore.instance
-                .collection('users')
-                .doc(freelancerId)
-                .get(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          }
-
-          if (!snapshot.hasData || !snapshot.data!.exists) {
-            return const Center(child: Text('Freelancer not found'));
-          }
-
-          final user = snapshot.data!.data() as Map<String, dynamic>;
-
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              children: [
-                _buildProfileHeader(user),
-                const SizedBox(height: 30),
-                _buildPersonalInfoSection(user),
-                const SizedBox(height: 25),
-
-                // Professional Details
-                _buildProfessionalDetailsSection(user),
-                const SizedBox(height: 25),
-
-                if ((user['bio'] as String?)?.isNotEmpty ?? false) ...[
-                _buildSectionTitle('About Me'),
-                _buildBioSection(user),
-                  const SizedBox(height: 25),
-                ],
-                if ((user['skills'] as List?)?.isNotEmpty ?? false) ...[
-                  _buildSectionTitle('Skills'),
-                  _buildSkillsSection(user),
-                  const SizedBox(height: 25),
-                ],
-
-
-                // Experience Section
-                if ((user['experience'] is String &&
-                        (user['experience'] as String).isNotEmpty) ||
-                    (user['experience'] is List &&
-                        (user['experience'] as List).isNotEmpty)) ...[
-                  _buildSectionTitle('Experience'),
-                  _buildExperienceSection(user),
-                  const SizedBox(height: 25),
-                ],
-
-                // Education Section
-                if ((user['education'] is String &&
-                        (user['education'] as String).isNotEmpty) ||
-                    (user['education'] is List &&
-                        (user['education'] as List).isNotEmpty)) ...[
-                  _buildSectionTitle('Education'),
-                  _buildEducationSection(user),
-                  const SizedBox(height: 25),
-                ],
-
-                // Certifications
-                if ((user['certifications'] as List?)?.isNotEmpty ?? false) ...[
-                  _buildSectionTitle('Certifications'),
-                  _buildCertificationsSection(user),
-                  const SizedBox(height: 25),
-                ],
-              ],
+        backgroundColor: Colors.transparent,
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [colorScheme.primary, colorScheme.surface],
             ),
-          );
-        },
+          ),
+        ),
+      ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              colorScheme.primary.withOpacity(0.1),
+              colorScheme.background,
+            ],
+          ),
+        ),
+        child: FutureBuilder<DocumentSnapshot>(
+          future:
+              FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(freelancerId)
+                  .get(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+        
+            if (snapshot.hasError) {
+              return Center(child: Text('Error: ${snapshot.error}'));
+            }
+        
+            if (!snapshot.hasData || !snapshot.data!.exists) {
+              return const Center(child: Text('Freelancer not found'));
+            }
+        
+            final user = snapshot.data!.data() as Map<String, dynamic>;
+        
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  _buildProfileHeader(user),
+                  const SizedBox(height: 30),
+                  _buildPersonalInfoSection(user),
+                  const SizedBox(height: 25),
+        
+                  // Professional Details
+                  _buildProfessionalDetailsSection(user),
+                  const SizedBox(height: 25),
+        
+                  if ((user['bio'] as String?)?.isNotEmpty ?? false) ...[
+                    _buildSectionTitle('About Me'),
+                    _buildBioSection(user),
+                    const SizedBox(height: 25),
+                  ],
+                  if ((user['skills'] as List?)?.isNotEmpty ?? false) ...[
+                    _buildSectionTitle('Skills'),
+                    _buildSkillsSection(user),
+                    const SizedBox(height: 25),
+                  ],
+        
+                  // Experience Section
+                  if ((user['experience'] is String &&
+                          (user['experience'] as String).isNotEmpty) ||
+                      (user['experience'] is List &&
+                          (user['experience'] as List).isNotEmpty)) ...[
+                    _buildSectionTitle('Experience'),
+                    _buildExperienceSection(user),
+                    const SizedBox(height: 25),
+                  ],
+        
+                  // Education Section
+                  if ((user['education'] is String &&
+                          (user['education'] as String).isNotEmpty) ||
+                      (user['education'] is List &&
+                          (user['education'] as List).isNotEmpty)) ...[
+                    _buildSectionTitle('Education'),
+                    _buildEducationSection(user),
+                    const SizedBox(height: 25),
+                  ],
+        
+                  // Certifications
+                  if ((user['certifications'] as List?)?.isNotEmpty ?? false) ...[
+                    _buildSectionTitle('Certifications'),
+                    _buildCertificationsSection(user),
+                    const SizedBox(height: 25),
+                  ],
+                ],
+              ),
+            );
+          },
+        ),
       ),
     );
   }
@@ -448,7 +265,7 @@ class FreelancerProfileScreen extends StatelessWidget {
     );
   }
 
-   Widget _buildPersonalInfoSection(Map<String, dynamic> user) {
+  Widget _buildPersonalInfoSection(Map<String, dynamic> user) {
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
@@ -567,6 +384,4 @@ class FreelancerProfileScreen extends StatelessWidget {
               .toList(),
     );
   }
-
-  
 }

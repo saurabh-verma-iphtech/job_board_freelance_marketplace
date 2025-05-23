@@ -1,5 +1,3 @@
-// import 'dart:async';
-// import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -13,6 +11,7 @@ import 'package:job_board_freelance_marketplace/Screens/Job/Client/list_proposal
 import 'package:job_board_freelance_marketplace/Screens/Job/Client/spendings_detail.dart';
 import 'package:job_board_freelance_marketplace/Screens/Job/completedJob.dart';
 import 'package:job_board_freelance_marketplace/Screens/Job/contract_list_screen.dart';
+import 'package:job_board_freelance_marketplace/Screens/Review%20System/client_review_list.dart';
 import 'package:job_board_freelance_marketplace/Services/theme_notifier.dart';
 
 class ClientDashboard extends ConsumerStatefulWidget {
@@ -210,7 +209,7 @@ class _ClientDashboardState extends ConsumerState<ClientDashboard>
               end: Alignment.bottomCenter,
               colors: [
                 colorScheme.primary.withOpacity(0.1),
-                colorScheme.background,
+                colorScheme.surface,
               ],
             ),
           ),
@@ -232,9 +231,9 @@ class _ClientDashboardState extends ConsumerState<ClientDashboard>
                 children: [
                   _buildWelcomeCard(theme),
                   const SizedBox(height: 24),
-                  _buildStatsGrid(),
-                  const SizedBox(height: 24),
                   _buildQuickActions(theme),
+                  const SizedBox(height: 24),
+                  _buildStatsGrid(),
                 ],
               ),
             ),
@@ -246,6 +245,7 @@ class _ClientDashboardState extends ConsumerState<ClientDashboard>
   }
 
   AppBar _buildAppBar(ThemeData theme) {
+    final colorScheme = theme.colorScheme;
     return AppBar(
       title: Text(
         'Welcome, $_userName',
@@ -254,8 +254,16 @@ class _ClientDashboardState extends ConsumerState<ClientDashboard>
           fontWeight: FontWeight.bold,
         ),
       ),
-      backgroundColor: theme.scaffoldBackgroundColor,
-      elevation: 0,
+      backgroundColor: Colors.transparent,
+      flexibleSpace: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [colorScheme.primary, colorScheme.surface],
+          ),
+        ),
+      ),
       actions: [
         _buildIconButton(
           icon: Icons.chat,
@@ -308,7 +316,7 @@ class _ClientDashboardState extends ConsumerState<ClientDashboard>
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Manage your hiring activities',
+                    _getClientMotivationalMessage(),
                     style: TextStyle(color: Colors.grey[600]),
                   ),
                 ],
@@ -343,7 +351,7 @@ class _ClientDashboardState extends ConsumerState<ClientDashboard>
         _buildStatCard(
           title: 'Active Contracts',
           value: _activeContractsCount.toString(),
-          color: Colors.green,
+          color: const Color.fromARGB(255, 34, 83, 80),
           icon: Icons.assignment_turned_in,
           onTap:
               () => Navigator.push(
@@ -356,7 +364,7 @@ class _ClientDashboardState extends ConsumerState<ClientDashboard>
         _buildStatCard(
           title: 'New Proposals',
           value: _newProposalsCount.toString(),
-          color: Colors.orange,
+          color: const Color.fromARGB(255, 32, 173, 163),
           icon: Icons.pending_actions,
           onTap: () => Navigator.pushNamed(context, '/client-proposals'),
         ),
@@ -396,9 +404,8 @@ class _ClientDashboardState extends ConsumerState<ClientDashboard>
                 MaterialPageRoute(builder: (_) => CompletedJobsScreen()),
               ),
         ),
-        // Add this to your existing stats grid children
         _buildStatCard(
-          title: 'Messages',
+          title: 'Rating',
           value: _unreadMessagesCount.toString(),
           color: Colors.purple,
           icon: Icons.chat,
@@ -406,7 +413,7 @@ class _ClientDashboardState extends ConsumerState<ClientDashboard>
               () => Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => ChatDashboard(userType: 'client'),
+                  builder: (_) => ClientReviewListScreen(),
                 ),
               ),
         ),
@@ -497,32 +504,64 @@ class _ClientDashboardState extends ConsumerState<ClientDashboard>
     required IconData icon,
     required VoidCallback onTap,
   }) {
-    return InkWell(
-      onTap: onTap,
-      child: Card(
-        elevation: 4,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(icon, size: 32, color: color),
-              const SizedBox(height: 12),
-              Text(
-                value,
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: color,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                title,
-                style: TextStyle(color: Colors.grey[600], fontSize: 14),
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          margin: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [color.withOpacity(0.15), color.withOpacity(0.05)],
+            ),
+            borderRadius: BorderRadius.circular(15),
+            boxShadow: [
+              BoxShadow(
+                color: color.withOpacity(0.1),
+                // blurRadius: 8,
+                // offset: const Offset(0, 4),
               ),
             ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(icon, size: 28, color: color),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  value,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: color.withOpacity(0.8),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -551,6 +590,18 @@ class _ClientDashboardState extends ConsumerState<ClientDashboard>
     if (hour < 17) return 'Afternoon';
     return 'Evening';
   }
+
+  String _getClientMotivationalMessage() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) {
+      return '🌅 Good morning! Ready to find great deals today?';
+    } else if (hour < 17) {
+      return '☀️ Hope your day’s going well! Check out what’s new.';
+    } else {
+      return '🌙 Wind down with your favorite buys and reviews!';
+    }
+  }
+
 
   Future<void> _signOut() async {
     await FirebaseAuth.instance.signOut();

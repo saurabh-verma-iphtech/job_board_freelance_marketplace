@@ -40,6 +40,7 @@ class _ClientJobsScreenState extends ConsumerState<ClientJobsScreen>
   Widget build(BuildContext context) {
     final uid = FirebaseAuth.instance.currentUser!.uid;
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final themeNotifier = ref.watch(themeNotifierProvider);
     final isDark = themeNotifier.mode == ThemeMode.dark;
 
@@ -47,8 +48,16 @@ class _ClientJobsScreenState extends ConsumerState<ClientJobsScreen>
       appBar: AppBar(
         title: const Text('My Posted Jobs'),
         centerTitle: true,
-        elevation: 8,
-        shadowColor: Colors.black.withOpacity(0.3),
+        backgroundColor: Colors.transparent,
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [colorScheme.primary, colorScheme.surface],
+            ),
+          ),
+        ),
       ),
       body: Container(
         decoration: BoxDecoration(
@@ -58,7 +67,10 @@ class _ClientJobsScreenState extends ConsumerState<ClientJobsScreen>
             colors:
                 isDark
                     ? [Colors.grey.shade900, Colors.grey.shade800]
-                    : [Colors.grey.shade50, Colors.grey.shade100],
+                    : [
+              colorScheme.primary.withOpacity(0.1),
+              colorScheme.background,
+            ],
           ),
         ),
         child: _buildJobList(uid, theme),

@@ -13,6 +13,8 @@ class ProposalDetailScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final currentUid = FirebaseAuth.instance.currentUser!.uid;
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     final propRef = FirebaseFirestore.instance
         .collection('proposals')
         .doc(proposalId);
@@ -51,39 +53,59 @@ class ProposalDetailScreen extends StatelessWidget {
     }
 
     return Scaffold(
+         
       appBar: AppBar(
         title: const Text('Proposal Details'),
         centerTitle: true,
-        elevation: 0,
-        backgroundColor: theme.scaffoldBackgroundColor,
-        // iconTheme: IconThemeData(color: theme.colorScheme.primary),
+        backgroundColor: Colors.transparent,
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [colorScheme.primary, colorScheme.surface],
+            ),
+          ),
+        ),
       ),
-      body: FutureBuilder<Map<String, dynamic>>(
-        future: _loadProposalData(),
-        builder: (ctx, snap) {
-          if (snap.connectionState == ConnectionState.waiting) {
-            return const Center(child: LoadingIndicator());
-          }
-          if (snap.hasError || !snap.hasData) {
-            return ErrorView(error: snap.error.toString());
-          }
-
-          final data = snap.data!;
-          final proposal = data['proposal'];
-          final job = data['job'];
-          final client = data['client'];
-          final freelancer = data['freelancer'];
-          final isClient = currentUid == job['createdBy'];
-
-          return AnimatedDetailContent(
-            proposal: proposal,
-            job: job,
-            client: client,
-            freelancer: freelancer,
-            isClient: isClient,
-            propRef: propRef,
-          );
-        },
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              colorScheme.primary.withOpacity(0.1),
+              colorScheme.background,
+            ],
+          ),
+        ),
+        child: FutureBuilder<Map<String, dynamic>>(
+          future: _loadProposalData(),
+          builder: (ctx, snap) {
+            if (snap.connectionState == ConnectionState.waiting) {
+              return const Center(child: LoadingIndicator());
+            }
+            if (snap.hasError || !snap.hasData) {
+              return ErrorView(error: snap.error.toString());
+            }
+        
+            final data = snap.data!;
+            final proposal = data['proposal'];
+            final job = data['job'];
+            final client = data['client'];
+            final freelancer = data['freelancer'];
+            final isClient = currentUid == job['createdBy'];
+        
+            return AnimatedDetailContent(
+              proposal: proposal,
+              job: job,
+              client: client,
+              freelancer: freelancer,
+              isClient: isClient,
+              propRef: propRef,
+            );
+          },
+        ),
       ),
     );
   }

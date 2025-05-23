@@ -143,8 +143,16 @@ class _JobFeedScreenState extends State<JobFeedScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Job Feed'),
-        backgroundColor: theme.scaffoldBackgroundColor,
-        elevation: 0,
+        backgroundColor: Colors.transparent,
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [colorScheme.primary, colorScheme.surface],
+            ),
+          ),
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.filter_list),
@@ -154,31 +162,6 @@ class _JobFeedScreenState extends State<JobFeedScreen> {
       ),
       body: Column(
         children: [
-          // Padding(
-          //   padding: const EdgeInsets.all(16),
-          //   child: TextField(
-          //     controller: _searchController,
-          //     decoration: InputDecoration(
-          //       hintText: 'Search jobs...',
-          //       prefixIcon: const Icon(Icons.search),
-          //       suffixIcon: IconButton(
-          //         icon: const Icon(Icons.clear),
-          //         onPressed: () {
-          //           _searchController.clear();
-          //           _searchQuery = '';
-          //           _applyFilters();
-          //         },
-          //       ),
-          //       border: OutlineInputBorder(
-          //         borderRadius: BorderRadius.circular(30),
-          //       ),
-          //     ),
-          //     onChanged: (value) {
-          //       _searchQuery = value.trim();
-          //       _applyFilters();
-          //     },
-          //   ),
-          // ),
           Expanded(
             child: Container(
               decoration: BoxDecoration(

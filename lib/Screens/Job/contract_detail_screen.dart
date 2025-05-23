@@ -110,9 +110,11 @@ class _ContractDetailScreenState extends State<ContractDetailScreen>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-final isClient =
+    final colorScheme = theme.colorScheme;
+    final isClient =
         widget.contract.clientId == FirebaseAuth.instance.currentUser!.uid;
-        final statusColor = widget.contract.status == 'completed' ? Colors.green : Colors.orange;
+    final statusColor =
+        widget.contract.status == 'completed' ? Colors.green : Colors.orange;
 
     return Scaffold(
       appBar: AppBar(
@@ -120,8 +122,16 @@ final isClient =
           'Contract Details',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        elevation: 0,
         backgroundColor: Colors.transparent,
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [colorScheme.primary, colorScheme.surface],
+            ),
+          ),
+        ),
       ),
       body: Container(
         decoration: BoxDecoration(
@@ -129,8 +139,8 @@ final isClient =
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              theme.colorScheme.primary.withOpacity(0.05),
-              theme.colorScheme.background.withOpacity(0.8),
+              colorScheme.primary.withOpacity(0.1),
+              colorScheme.background,
             ],
           ),
         ),
@@ -288,7 +298,10 @@ final isClient =
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.blueAccent,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 15,horizontal: 10),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 15,
+                  horizontal: 10,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),

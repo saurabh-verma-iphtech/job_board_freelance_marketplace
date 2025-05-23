@@ -235,12 +235,21 @@ class _ClientProfileScreenState extends ConsumerState<ClientProfileScreen>
     final theme = Theme.of(context);
     final themeNotifier = ref.watch(themeNotifierProvider);
     final isDark = themeNotifier.mode == ThemeMode.dark;
+    final colorScheme = theme.colorScheme;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Profile'),
-        backgroundColor: theme.scaffoldBackgroundColor,
-        elevation: 0,
+        backgroundColor: Colors.transparent,
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [colorScheme.primary, colorScheme.surface],
+            ),
+          ),
+        ),
         actions: [
           if (_isEditing)
             IconButton(
