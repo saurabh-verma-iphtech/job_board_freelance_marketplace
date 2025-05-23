@@ -31,6 +31,9 @@ class _FreelancerProfileScreenState extends State<FreelancerProfileScreen>
   bool _isUploadingImage = false;
   File? _profileImageFile;
   String? _profileImageUrl;
+  int _reviewCount = 0;
+  double? _averageRating;
+
 
   @override
   void initState() {
@@ -48,7 +51,30 @@ class _FreelancerProfileScreenState extends State<FreelancerProfileScreen>
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
     _controller.forward();
+    _loadReviewStats();
   }
+
+  Future<void> _loadReviewStats() async {
+    if (user == null) return;
+
+    final snap =
+        await _firestore
+            .collectionGroup('reviews')
+            .where('subjectRole', isEqualTo: 'freelancer')
+            .where('subjectId', isEqualTo: user!.uid)
+            .get();
+
+    final count = snap.size;
+    final sum = snap.docs
+        .map((d) => (d.data()['rating'] as num).toDouble())
+        .fold<double>(0, (a, b) => a + b);
+
+    setState(() {
+      _reviewCount = count;
+      _averageRating = count > 0 ? sum / count : null;
+    });
+  }
+
 
   @override
   void dispose() {
@@ -177,10 +203,7 @@ class _FreelancerProfileScreenState extends State<FreelancerProfileScreen>
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              colorScheme.primary.withOpacity(0.1),
-              colorScheme.background,
-            ],
+            colors: [colorScheme.primary.withOpacity(0.1), colorScheme.surface],
           ),
         ),
         child: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
@@ -200,23 +223,25 @@ class _FreelancerProfileScreenState extends State<FreelancerProfileScreen>
             if (!snapshot.hasData || !snapshot.data!.exists) {
               return const Center(child: Text('User not found'));
             }
-        
+
             final data = snapshot.data!.data()!;
             final skillsRaw = data['skills'];
             final expRaw = data['experience'];
             final eduRaw = data['education'];
-        
+
             final skills = <String>[];
             if (skillsRaw is List) {
-              for (var s in skillsRaw) if (s is String) skills.add(s);
+              for (var s in skillsRaw) {
+                if (s is String) skills.add(s);
+              }
             }
-        
+
             final experience = <dynamic>[];
             if (expRaw is List) experience.addAll(expRaw);
-        
+
             final education = <dynamic>[];
             if (eduRaw is List) education.addAll(eduRaw);
-        
+
             return Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
@@ -224,7 +249,7 @@ class _FreelancerProfileScreenState extends State<FreelancerProfileScreen>
                   end: Alignment.bottomCenter,
                   colors: [
                     theme.colorScheme.primary.withOpacity(0.1),
-                    theme.colorScheme.background,
+                    theme.colorScheme.surface,
                   ],
                 ),
               ),
@@ -253,9 +278,8 @@ class _FreelancerProfileScreenState extends State<FreelancerProfileScreen>
                                 skills
                                     .map(
                                       (s) => Chip(
-                                        backgroundColor: Colors.blue.withOpacity(
-                                          0.1,
-                                        ),
+                                        backgroundColor: Colors.blue
+                                            .withOpacity(0.1),
                                         label: Text(s),
                                       ),
                                     )
@@ -263,13 +287,13 @@ class _FreelancerProfileScreenState extends State<FreelancerProfileScreen>
                           ),
                         ]),
                         const SizedBox(height: 24),
-        
+
                         _buildContactSection(data),
                         const SizedBox(height: 24),
-        
+
                         _buildProfessionalDetails(data),
                         const SizedBox(height: 24),
-        
+
                         _buildCertificationsSection(data),
                         const SizedBox(height: 24),
                         _buildSection('Experience', Icons.work, [
@@ -290,7 +314,8 @@ class _FreelancerProfileScreenState extends State<FreelancerProfileScreen>
                               } else {
                                 final start =
                                     exp['startDate'] is Timestamp
-                                        ? (exp['startDate'] as Timestamp).toDate()
+                                        ? (exp['startDate'] as Timestamp)
+                                            .toDate()
                                         : null;
                                 final end =
                                     exp['endDate'] is Timestamp
@@ -331,7 +356,8 @@ class _FreelancerProfileScreenState extends State<FreelancerProfileScreen>
                               } else {
                                 final start =
                                     edu['startDate'] is Timestamp
-                                        ? (edu['startDate'] as Timestamp).toDate()
+                                        ? (edu['startDate'] as Timestamp)
+                                            .toDate()
                                         : null;
                                 final end =
                                     edu['endDate'] is Timestamp
@@ -462,10 +488,6 @@ class _FreelancerProfileScreenState extends State<FreelancerProfileScreen>
                     userData['title'] ?? 'Freelancer',
                     style: TextStyle(color: Colors.grey[600], fontSize: 16),
                   ),
-                  // Text(
-                  //   userData['location'] ?? '',
-                  //   style: TextStyle(color: Colors.grey[600], fontSize: 14),
-                  // ),
                   const SizedBox(height: 4),
 
                   // Experience Level – always show, with default text:
@@ -496,6 +518,18 @@ class _FreelancerProfileScreenState extends State<FreelancerProfileScreen>
                             ? '\$${userData['hourlyRate']}/hour'
                             : 'Rate not set',
                         style: TextStyle(color: Colors.blue[600], fontSize: 14),
+                      ),
+                    ],
+                  ),
+                  Row(
+                    children: [
+                      Icon(Icons.star, color: Colors.amber, size: 16),
+                      const SizedBox(width: 4),
+                      Text(
+                        _averageRating != null
+                            ? '${_averageRating!.toStringAsFixed(1)} ($_reviewCount)'
+                            : 'No reviews yet',
+                        style: TextStyle(color: Colors.grey[600], fontSize: 14),
                       ),
                     ],
                   ),

@@ -35,8 +35,11 @@ class _ClientDashboardState extends ConsumerState<ClientDashboard>
   int _totalProposalsCount = 0; // new
   int _unreadMessagesCount = 0;
   late StreamSubscription _chatsSub;
+  double _averageRating = 0.0;
+  int _totalReviews = 0;
 
   late StreamSubscription<QuerySnapshot> _totalPropsSub;
+  late StreamSubscription<QuerySnapshot> _ratingSub;
   late StreamSubscription _contractsSub;
   late StreamSubscription _propsSub;
   late StreamSubscription _sub;
@@ -50,7 +53,8 @@ class _ClientDashboardState extends ConsumerState<ClientDashboard>
     _listenToNewProposals();
     _listenToActiveContracts();
     _fetchTotalSpent();
-    _fetchTotalProposals(); // call new fetch
+    _fetchTotalProposals();
+    _listenToRatings();
     _listenToTotalProposals();
     _listenToUnreadMessages();
 
@@ -181,16 +185,45 @@ class _ClientDashboardState extends ConsumerState<ClientDashboard>
     }
   }
 
+  void _listenToRatings() {
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+    _ratingSub = FirebaseFirestore.instance
+        .collectionGroup('reviews')
+        .where('subjectId', isEqualTo: uid)
+        .where('subjectRole', isEqualTo: 'client')
+        .snapshots()
+        .listen((snapshot) {
+          double totalRating = 0;
+          int reviewCount = snapshot.docs.length;
+
+          for (var doc in snapshot.docs) {
+            final rating = doc['rating'] as double? ?? 0.0;
+            totalRating += rating;
+          }
+
+          setState(() {
+            _totalReviews = reviewCount;
+            _averageRating = reviewCount > 0 ? totalRating / reviewCount : 0.0;
+          });
+        });
+  }
+
   @override
   void dispose() {
     _controller.dispose();
     _sub.cancel();
     _propsSub.cancel();
     _contractsSub.cancel();
-    _totalPropsSub.cancel(); // ← new
+    _totalPropsSub.cancel();
     _listenToUnreadMessages();
+    _ratingSub.cancel();
 
     super.dispose();
+  }
+
+  String _formatRating(double rating) {
+    if (rating == 0.0) return 'No ratings';
+    return '${rating.toStringAsFixed(1)} ★ ($_totalReviews reviews)';
   }
 
   @override
@@ -340,7 +373,7 @@ class _ClientDashboardState extends ConsumerState<ClientDashboard>
         _buildStatCard(
           title: 'Posted Jobs',
           value: _postedJobsCount.toString(),
-          color: Colors.blue,
+          color: const Color.fromARGB(255, 243, 33, 33),
           icon: Icons.work_outline,
           onTap:
               () => Navigator.push(
@@ -351,7 +384,7 @@ class _ClientDashboardState extends ConsumerState<ClientDashboard>
         _buildStatCard(
           title: 'Active Contracts',
           value: _activeContractsCount.toString(),
-          color: const Color.fromARGB(255, 34, 83, 80),
+          color: Colors.blue,
           icon: Icons.assignment_turned_in,
           onTap:
               () => Navigator.push(
@@ -364,14 +397,14 @@ class _ClientDashboardState extends ConsumerState<ClientDashboard>
         _buildStatCard(
           title: 'New Proposals',
           value: _newProposalsCount.toString(),
-          color: const Color.fromARGB(255, 32, 173, 163),
+          color: const Color.fromARGB(255, 34, 83, 80),
           icon: Icons.pending_actions,
           onTap: () => Navigator.pushNamed(context, '/client-proposals'),
         ),
         _buildStatCard(
           title: 'Total Proposals',
           value: _totalProposalsCount.toString(),
-          color: Colors.redAccent,
+          color: const Color.fromARGB(255, 29, 169, 184),
           icon: Icons.local_grocery_store_outlined,
           onTap:
               () => Navigator.push(
@@ -404,18 +437,65 @@ class _ClientDashboardState extends ConsumerState<ClientDashboard>
                 MaterialPageRoute(builder: (_) => CompletedJobsScreen()),
               ),
         ),
-        _buildStatCard(
-          title: 'Rating',
-          value: _unreadMessagesCount.toString(),
-          color: Colors.purple,
-          icon: Icons.chat,
+        GestureDetector(
           onTap:
               () => Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (_) => ClientReviewListScreen(),
-                ),
+                MaterialPageRoute(builder: (_) => ClientReviewListScreen()),
               ),
+          child: Container(
+            margin: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Colors.orange.withOpacity(0.15),
+                  Colors.orange.withOpacity(0.05),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(15),
+              boxShadow: [BoxShadow(color: Colors.orange.withOpacity(0.1))],
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.red.withOpacity(0.2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Icons.star, size: 28, color: Colors.orange),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    _formatRating(_averageRating),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.red,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    "Freelancer's Rating",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.red.withOpacity(0.8),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
       ],
     );
@@ -601,7 +681,6 @@ class _ClientDashboardState extends ConsumerState<ClientDashboard>
       return '🌙 Wind down with your favorite buys and reviews!';
     }
   }
-
 
   Future<void> _signOut() async {
     await FirebaseAuth.instance.signOut();

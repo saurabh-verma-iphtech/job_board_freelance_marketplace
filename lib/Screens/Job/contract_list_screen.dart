@@ -642,93 +642,93 @@ final docs = snap.data?.docs ?? [];
                                 ),
                           ),
                         ),
-                        if (contract.status == 'completed')
-                          Consumer(
-                            builder: (context, ref, _) {
-                              final hasReviewedAsync = ref.watch(
-                                hasReviewedProvider(contract.jobId),
-                              );
+                        // if (contract.status == 'completed')
+                        //   Consumer(
+                        //     builder: (context, ref, _) {
+                        //       final hasReviewedAsync = ref.watch(
+                        //         hasReviewedProvider(contract.jobId),
+                        //       );
 
-                              return hasReviewedAsync.when(
-                                loading:
-                                    () => const CircularProgressIndicator(),
-                                error: (error, _) => Text('Error: $error'),
-                                data: (hasReviewed) {
-                                  final isSubject =
-                                      role == 'client'
-                                          ? contract.clientId ==
-                                              FirebaseAuth
-                                                  .instance
-                                                  .currentUser!
-                                                  .uid
-                                          : contract.freelancerId ==
-                                              FirebaseAuth
-                                                  .instance
-                                                  .currentUser!
-                                                  .uid;
+                        //       return hasReviewedAsync.when(
+                        //         loading:
+                        //             () => const CircularProgressIndicator(),
+                        //         error: (error, _) => Text('Error: $error'),
+                        //         data: (hasReviewed) {
+                        //           final isSubject =
+                        //               role == 'client'
+                        //                   ? contract.clientId ==
+                        //                       FirebaseAuth
+                        //                           .instance
+                        //                           .currentUser!
+                        //                           .uid
+                        //                   : contract.freelancerId ==
+                        //                       FirebaseAuth
+                        //                           .instance
+                        //                           .currentUser!
+                        //                           .uid;
 
-                                  return Column(
-                                    children: [
-                                      // 1) Rate button: only if not reviewed
-                                      if (!hasReviewed)
-                                        ElevatedButton(
-                                          onPressed:
-                                              () => Navigator.push(
-                                                context,
-                                                MaterialPageRoute(
-                                                  builder:
-                                                      (_) => SubmitReviewScreen(
-                                                        jobId: contract.jobId,
-                                                        subjectId:
-                                                            role == 'client'
-                                                                ? contract
-                                                                    .freelancerId
-                                                                : contract
-                                                                    .clientId,
-                                                        reviewerRole: role,
-                                                        subjectRole:
-                                                            role == 'client'
-                                                                ? 'freelancer'
-                                                                : 'client',
-                                                      ),
-                                                ),
-                                              ),
-                                          child: const Text('Rate'),
-                                        ),
+                        //           return Column(
+                        //             children: [
+                        //               // 1) Rate button: only if not reviewed
+                        //               if (!hasReviewed)
+                        //                 ElevatedButton(
+                        //                   onPressed:
+                        //                       () => Navigator.push(
+                        //                         context,
+                        //                         MaterialPageRoute(
+                        //                           builder:
+                        //                               (_) => SubmitReviewScreen(
+                        //                                 jobId: contract.jobId,
+                        //                                 subjectId:
+                        //                                     role == 'client'
+                        //                                         ? contract
+                        //                                             .freelancerId
+                        //                                         : contract
+                        //                                             .clientId,
+                        //                                 reviewerRole: role,
+                        //                                 subjectRole:
+                        //                                     role == 'client'
+                        //                                         ? 'freelancer'
+                        //                                         : 'client',
+                        //                               ),
+                        //                         ),
+                        //                       ),
+                        //                   child: const Text('Rate'),
+                        //                 ),
 
-                                      const SizedBox(width: 8),
+                        //               const SizedBox(width: 8),
 
-                                      // 2) View Reviews: show whenever the current user is the subject
-                                      if (isSubject)
-                                        OutlinedButton(
-                                          onPressed:
-                                              () => Navigator.push(
-                                                context,
-                                                MaterialPageRoute(
-                                                  // In ContractsListScreen's "View Reviews" button:
-                                                  builder:
-                                                      (_) => ReviewListScreen(
-                                                        subjectId:
-                                                            role == 'client'
-                                                                ? contract
-                                                                    .freelancerId
-                                                                : contract
-                                                                    .clientId, // Check if this is correct
-                                                        subjectRole:
-                                                            role == 'client'
-                                                                ? 'freelancer'
-                                                                : 'client',
-                                                      ),
-                                                ),
-                                              ),
-                                          child: const Text('View Reviews'),
-                                        ),
-                                    ],
-                                  );
-                                },
-                              );
-                            },
-                          ),
+                        //               // 2) View Reviews: show whenever the current user is the subject
+                        //               if (isSubject)
+                        //                 OutlinedButton(
+                        //                   onPressed:
+                        //                       () => Navigator.push(
+                        //                         context,
+                        //                         MaterialPageRoute(
+                        //                           // In ContractsListScreen's "View Reviews" button:
+                        //                           builder:
+                        //                               (_) => ReviewListScreen(
+                        //                                 subjectId:
+                        //                                     role == 'client'
+                        //                                         ? contract
+                        //                                             .freelancerId
+                        //                                         : contract
+                        //                                             .clientId, // Check if this is correct
+                        //                                 subjectRole:
+                        //                                     role == 'client'
+                        //                                         ? 'freelancer'
+                        //                                         : 'client',
+                        //                               ),
+                        //                         ),
+                        //                       ),
+                        //                   child: const Text('View Reviews'),
+                        //                 ),
+                        //             ],
+                        //           );
+                        //         },
+                        //       );
+                        //     },
+                        //   ),
 
                       ],
                     ),
@@ -874,6 +874,82 @@ class _ContractCard extends StatelessWidget {
                           ),
                         ),
                       ),
+                    ),
+                  if (contract.status == 'completed')
+                    Consumer(
+                      builder: (context, ref, _) {
+                        final hasReviewedAsync = ref.watch(
+                          hasReviewedProvider(contract.jobId),
+                        );
+
+                        return hasReviewedAsync.when(
+                          loading: () => const CircularProgressIndicator(),
+                          error: (error, _) => Text('Error: $error'),
+                          data: (hasReviewed) {
+                            final isSubject =
+                                role == 'client'
+                                    ? contract.clientId ==
+                                        FirebaseAuth.instance.currentUser!.uid
+                                    : contract.freelancerId ==
+                                        FirebaseAuth.instance.currentUser!.uid;
+
+                            return Column(
+                              children: [
+                                // 1) Rate button: only if not reviewed
+                                if (!hasReviewed)
+                                  ElevatedButton(
+                                    onPressed:
+                                        () => Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder:
+                                                (_) => SubmitReviewScreen(
+                                                  jobId: contract.jobId,
+                                                  subjectId:
+                                                      role == 'client'
+                                                          ? contract
+                                                              .freelancerId
+                                                          : contract.clientId,
+                                                  reviewerRole: role,
+                                                  subjectRole:
+                                                      role == 'client'
+                                                          ? 'freelancer'
+                                                          : 'client',
+                                                ),
+                                          ),
+                                        ),
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        // Icon(Icons.star,color: Colors.amber,),
+                                        Row(
+                                          children: List.generate(
+                                            2,
+                                            (index) => Icon(
+                                              Icons.star,
+                                              color: Colors.amber,
+                                            ),
+                                          ),
+                                        ),
+                                        Text("Rate"),
+                                        Row(
+                                          children: List.generate(
+                                            2,
+                                            (index) => Icon(
+                                              Icons.star,
+                                              color: Colors.amber,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                              ],
+                            );
+                          },
+                        );
+                      },
                     ),
                 ],
               ),

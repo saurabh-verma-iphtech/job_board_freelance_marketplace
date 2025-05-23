@@ -22,6 +22,8 @@ class _ClientProfileScreenState extends ConsumerState<ClientProfileScreen>
   File? _profileImageFile;
   String? _profileImageUrl;
   bool _isUploadingImage = false;
+  int _reviewCount = 0;
+  double? _averageRating;
 
   late AnimationController _controller;
   late Animation<double> _opacityAnimation;
@@ -166,26 +168,43 @@ class _ClientProfileScreenState extends ConsumerState<ClientProfileScreen>
     }
   }
 
-  Future<void> _loadUserData() async {
+Future<void> _loadUserData() async {
     if (user == null) return;
 
     final doc = await _firestore.collection('users').doc(user!.uid).get();
-    if (doc.exists) {
+    if (!doc.exists) return;
+
+    final reviewsSnapshot =
+        await _firestore
+            .collectionGroup('reviews')
+            .where('subjectId', isEqualTo: user!.uid)
+            .where('subjectRole', isEqualTo: 'client')
+            .get();
+
+    final reviewCount = reviewsSnapshot.size;
+    double totalRating = reviewsSnapshot.docs
+        .map((d) => (d.data()['rating'] as num).toDouble())
+        .fold(0.0, (a, b) => a + b);
+
+    setState(() {
+      _reviewCount = reviewCount;
+      _averageRating = reviewCount > 0 ? totalRating / reviewCount : null;
+
       final data = doc.data()!;
-      setState(() {
-        _nameController.text = data['name'] ?? '';
-        _emailController.text = data['email'] ?? '';
-        _phoneController.text = data['phone'] ?? '';
-        _addressController.text = data['address'] ?? '';
-        _companyController.text = data['company'] ?? '';
-        _websiteController.text = data['website'] ?? '';
-        _linkedinController.text = data['linkedin'] ?? '';
-        _twitterController.text = data['twitter'] ?? '';
-        _profileImageUrl = data['photoUrl'] ?? '';
-        _isLoading = false;
-      });
-    }
+      _nameController.text = data['name'] ?? '';
+      _emailController.text = data['email'] ?? '';
+      _phoneController.text = data['phone'] ?? '';
+      _addressController.text = data['address'] ?? '';
+      _companyController.text = data['company'] ?? '';
+      _websiteController.text = data['website'] ?? '';
+      _linkedinController.text = data['linkedin'] ?? '';
+      _twitterController.text = data['twitter'] ?? '';
+      _profileImageUrl = data['photoUrl'] ?? '';
+
+      _isLoading = false;
+    });
   }
+
 
   Future<void> _saveProfile() async {
     if (!_formKey.currentState!.validate()) return;
@@ -381,6 +400,20 @@ class _ClientProfileScreenState extends ConsumerState<ClientProfileScreen>
                     _nameController.text,
                     style: TextStyle(color: Colors.grey[600], fontSize: 16),
                   ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(Icons.star, color: Colors.amber, size: 16),
+                      const SizedBox(width: 4),
+                      Text(
+                        _averageRating != null
+                            ? '${_averageRating!.toStringAsFixed(1)} ($_reviewCount)'
+                            : 'No ratings yet',
+                        style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                      ),
+                    ],
+                  ),
+
                 ],
               ),
             ),

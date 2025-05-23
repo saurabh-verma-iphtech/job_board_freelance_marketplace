@@ -514,7 +514,6 @@
 //   }
 // }
 
-
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -548,11 +547,14 @@ class _FreelancerDashboardState extends State<FreelancerDashboard>
   double totalEarnings = 0.0;
   int totalProposals = 0;
   int _unreadMessagesCount = 0;
+  int totalReview = 0;
+  double averageRating = 0.0;
 
   late StreamSubscription<QuerySnapshot> _contractsSub;
   late StreamSubscription<QuerySnapshot> _proposalsSub;
   late StreamSubscription<QuerySnapshot> _completedSub;
   late StreamSubscription<QuerySnapshot> _allPropsSub;
+  late StreamSubscription<QuerySnapshot> _ratingSub;
 
   @override
   void initState() {
@@ -604,6 +606,25 @@ class _FreelancerDashboardState extends State<FreelancerDashboard>
         .listen((snapshot) {
           setState(() => activeContracts = snapshot.docs.length);
         });
+    _ratingSub = FirebaseFirestore.instance
+        .collectionGroup('reviews')
+        .where('subjectId', isEqualTo: uid)
+        .where('subjectRole', isEqualTo: 'freelancer')
+        .snapshots()
+        .listen((snapshot) {
+          double totalRating = 0;
+          int reviewCount = snapshot.docs.length;
+
+          for (var doc in snapshot.docs) {
+            final rating = doc['rating'] as double? ?? 0.0;
+            totalRating += rating;
+          }
+
+          setState(() {
+            totalReview = reviewCount;
+            averageRating = reviewCount > 0 ? totalRating / reviewCount : 0.0;
+          });
+        });
 
     _proposalsSub = FirebaseFirestore.instance
         .collection('proposals')
@@ -647,7 +668,13 @@ class _FreelancerDashboardState extends State<FreelancerDashboard>
     _proposalsSub.cancel();
     _completedSub.cancel();
     _allPropsSub.cancel();
+    _ratingSub.cancel();
     super.dispose();
+  }
+
+  String _formatRating(double rating) {
+    if (rating == 0.0) return 'No ratings';
+    return '${rating.toStringAsFixed(1)} ★ (${totalReview} reviews)';
   }
 
   @override
@@ -821,6 +848,13 @@ class _FreelancerDashboardState extends State<FreelancerDashboard>
       childAspectRatio: 1.1,
       children: [
         _buildStatCard(
+          title: 'Job Feed',
+          value: activeContracts.toString(),
+          color: const Color.fromARGB(255, 243, 33, 33),
+          icon: Icons.assignment_turned_in,
+          onTap: () => Navigator.pushNamed(context, '/job-feed'),
+        ),
+        _buildStatCard(
           title: 'Active Contracts',
           value: activeContracts.toString(),
           color: Colors.blue,
@@ -841,7 +875,7 @@ class _FreelancerDashboardState extends State<FreelancerDashboard>
         _buildStatCard(
           title: 'Total Proposals',
           value: totalProposals.toString(),
-          color: Colors.redAccent,
+          color: const Color.fromARGB(255, 29, 169, 184),
           icon: Icons.local_grocery_store_outlined,
           onTap: () => Navigator.pushNamed(context, '/my-proposals'),
         ),
@@ -867,16 +901,64 @@ class _FreelancerDashboardState extends State<FreelancerDashboard>
                 MaterialPageRoute(builder: (_) => CompletedJobsScreen()),
               ),
         ),
-        _buildStatCard(
-          title: 'Rating',
-          value: completedJobs.toString(),
-          color: Colors.purple,
-          icon: Icons.verified,
-          onTap:
-              () => Navigator.push(
-                context,
+        GestureDetector(
+          onTap:()=> Navigator.push(context,
                 MaterialPageRoute(builder: (_) => FreelancerReviewListScreen()),
               ),
+          child: Container(
+            margin: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Colors.orange.withOpacity(0.15), Colors.orange.withOpacity(0.05)],
+              ),
+              borderRadius: BorderRadius.circular(15),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.orange.withOpacity(0.1),
+                ),
+              ],
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.red.withOpacity(0.2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Icons.star, size: 28, color: Colors.orange),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    _formatRating(averageRating),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.red,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    "Client's Rating",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.red.withOpacity(0.8),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
       ],
     );
@@ -921,16 +1003,16 @@ class _FreelancerDashboardState extends State<FreelancerDashboard>
   }
 
   Widget _buildFloatingActionButton(ThemeData theme) {
-    return FloatingActionButton.extended(
+    return FloatingActionButton(
       onPressed: () => Navigator.pushNamed(context, '/job-feed'),
-      icon: Icon(Icons.search, size: 24),
-      label: const Text('Find Jobs'),
+      // label: const Text('Find Jobs'),
       backgroundColor: theme.colorScheme.primary,
       foregroundColor: theme.colorScheme.onPrimary,
       elevation: 6,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      extendedPadding: const EdgeInsets.symmetric(horizontal: 24),
+      // extendedPadding: const EdgeInsets.symmetric(horizontal: 24),
       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      child: Icon(Icons.search, size: 24),
     );
   }
 
@@ -951,10 +1033,7 @@ class _FreelancerDashboardState extends State<FreelancerDashboard>
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [
-                color.withOpacity(0.15),
-                color.withOpacity(0.05),
-              ],
+              colors: [color.withOpacity(0.15), color.withOpacity(0.05)],
             ),
             borderRadius: BorderRadius.circular(15),
             boxShadow: [
