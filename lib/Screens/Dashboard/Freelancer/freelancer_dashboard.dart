@@ -1023,67 +1023,86 @@ class _FreelancerDashboardState extends State<FreelancerDashboard>
     required IconData icon,
     required VoidCallback onTap,
   }) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          margin: const EdgeInsets.all(4),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [color.withOpacity(0.15), color.withOpacity(0.05)],
-            ),
-            borderRadius: BorderRadius.circular(15),
-            boxShadow: [
-              BoxShadow(
-                color: color.withOpacity(0.1),
-                // blurRadius: 8,
-                // offset: const Offset(0, 4),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: GestureDetector(
+            onTap: onTap,
+            child: Container(
+              constraints: BoxConstraints(
+                minHeight: 120,
+                maxWidth: constraints.maxWidth,
               ),
-            ],
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: color.withOpacity(0.2),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(icon, size: 28, color: color),
+              margin: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [color.withOpacity(0.15), color.withOpacity(0.05)],
                 ),
-                const SizedBox(height: 16),
-                Text(
-                  value,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 26,
-                    fontWeight: FontWeight.bold,
-                    color: color,
-                    letterSpacing: 0.5,
-                  ),
+                borderRadius: BorderRadius.circular(15),
+                boxShadow: [BoxShadow(color: color.withOpacity(0.1))],
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: color.withOpacity(0.2),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        icon,
+                        size:
+                            constraints.maxWidth * 0.1 + 16, // Responsive size
+                        color: color,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Flexible(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          value,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 22, // Reduced from 26
+                            fontWeight: FontWeight.bold,
+                            color: color,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Flexible(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: Text(
+                          title,
+                          textAlign: TextAlign.center,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: color.withOpacity(0.8),
+                            fontSize: 14, // Reduced from 16
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  title,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: color.withOpacity(0.8),
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
